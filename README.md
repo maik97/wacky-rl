@@ -1,6 +1,6 @@
 # Wacky-RL
 
-Create custom reinforcement learning agents with wacky-rl.
+Create custom reinforcement learning agents with `wacky-rl`.
 
 ## Installation
 
@@ -25,7 +25,7 @@ python setup.py install
 
 ## Documentation 
 
-See the documentation for a detailed explanation on creating your own agents with Wacky-RL.
+See the documentation for a detailed explanation on creating your own agents with `wacky-rl`.
 
 ## Example
 
