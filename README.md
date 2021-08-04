@@ -37,12 +37,17 @@ import gym
 from wacky_rl import MultiAgentCompiler
 from wacky_rl.agents import DiscreteActorCriticCore
 
+#  It's possible to use multiple agents for different actions with MultiAgentCompiler.
+agent = MultiAgentCompiler(gym.make('CartPole-v0'), log_dir='_logs')
+
+#  For the example environment only one agent is needed:
 ac = DiscreteActorCriticCore(common_units=32, actor_units=128, critic_units=128)
 
-agent = MultiAgentCompiler(gym.make('CartPole-v0'), log_dir='_logs')
+# Assign the agent to the action:
 agent.assign_agent(ac, at_index=0)
-agent = agent.build(max_steps_per_episode=None)
 
+# Compile and train:
+agent = agent.build(max_steps_per_episode=None)
 agent.train_agent(500)
 ```
 
