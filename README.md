@@ -25,7 +25,7 @@ python setup.py install
 
 ## Documentation 
 
-See the documentation for a detailed explanation of creating your own agents with Wacky-RL.
+See the documentation for a detailed explanation on creating your own agents with Wacky-RL.
 
 ## Example
 
