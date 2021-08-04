@@ -4,13 +4,13 @@ Create custom reinforcement learning agents with wacky-rl.
 
 ## Installation
 
-- Install Wacky-RL from Pypi (recommended):
+- Install Wacky-RL with pip:
 
 ```
 pip install wacky-rl
 ```
 
-- Install from Github source:
+- Install with git:
 
 ```
 git clone https://github.com/maik97/wacky-rl.git
@@ -18,7 +18,18 @@ cd wacky-rl
 python setup.py install
 ```
 
+## Dependencies
+
+- tensorflow >= 2.5
+- gym >= 0.17.3
+
+## Documentation 
+
+See the documentation for a detailed explanation of creating your own agents with Wacky-RL.
+
 ## Example
+
+Additionally to creating your own agents, you can use the prebuilt agents:
 
 ```python
 import gym
@@ -31,6 +42,15 @@ agent.assign_agent(DiscreteActorCriticCore())
 agent = agent.build(max_steps_per_episode=None)
 agent.train_agent(500)
 ```
+
+## Prebuilt Agents
+
+- [ ] DQN
+- [x] Discrete Actor Critic 
+- [ ] Continuous Actor Critc
+- [ ] SAC
+- [ ] PPO
+
 
 ## Citing
 
