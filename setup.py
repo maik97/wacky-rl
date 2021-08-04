@@ -2,7 +2,7 @@ from distutils.core import setup
 
 
 setup(
-  name = 'wacky_rl',
+  name = 'wacky-rl',
   packages = ['wacky_rl'],
   version = '0.0.1',
   license='MIT',
