@@ -21,6 +21,7 @@ python setup.py install
 ## Dependencies
 
 - tensorflow >= 2.5
+- tensorflow-probability
 - gym >= 0.17.3
 
 ## Documentation 
