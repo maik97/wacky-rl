@@ -1,16 +1,18 @@
 from distutils.core import setup
+from setuptools import find_packages
+
 
 
 setup(
   name = 'wacky-rl',
-  packages = ['wacky_rl'],
-  version = '0.0.1',
+  packages=find_packages(),
+  version = '0.0.2',
   license='MIT',
   description = 'Create custom reinforcement learning agents with wacky-rl.',
   author = 'Maik Schürmann',
   author_email = 'maik.schuermann97@gmail.com',
   url = 'https://github.com/maik97',
-  download_url = 'https://github.com/maik97/wacky-rl/archive/refs/tags/v0.0.1-alpha.tar.gz',
+  download_url = 'https://github.com/maik97/wacky-rl/archive/refs/tags/v0.0.2-alpha.tar.gz',
   keywords = ['rl', 'actor_critic', 'reinforcement-learning'],
   install_requires=[
           'tensorflow',
