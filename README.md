@@ -37,9 +37,12 @@ import gym
 from wacky_rl import MultiAgentCompiler
 from wacky_rl.agents import DiscreteActorCriticCore
 
+ac = DiscreteActorCriticCore(common_units=32, actor_units=128, critic_units=128)
+
 agent = MultiAgentCompiler(gym.make('CartPole-v0'), log_dir='_logs')
-agent.assign_agent(DiscreteActorCriticCore(), at_index=0
+agent.assign_agent(ac, at_index=0)
 agent = agent.build(max_steps_per_episode=None)
+
 agent.train_agent(500)
 ```
 
