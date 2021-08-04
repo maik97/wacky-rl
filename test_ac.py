@@ -1,14 +1,11 @@
-import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras.optimizer_v2 import optimizer_v2
-from gym import spaces
 
-from main.agents.agent_core import BaseAgentCore
-from main.agents.agent_tape import ParallelGradientTape
-from main.agents.agent_losses import discrete_actor_loss, discrete_actor_loss_with_tfp
-from main.agents.agent_models import BaseLayers
-from main.agents.agent_memory import LoggingTensorArray
-from main.agents.agent_act_funcs import act_discrete_actor_critic, act_discrete_actor_critic_with_tfp
+from wacky_rl import BaseAgentCore
+from wacky_rl.wacky_tape.wacky_tape import ParallelGradientTape
+from wacky_rl.losses import discrete_actor_loss_with_tfp
+from wacky_rl.models import BaseLayers
+from wacky_rl.memory import LoggingTensorArray
+from wacky_rl.act_calcs import act_discrete_actor_critic, act_discrete_actor_critic_with_tfp
 
 
 class DiscreteActorCriticCore(BaseAgentCore):
@@ -179,95 +176,3 @@ class DiscreteActorCriticCore(BaseAgentCore):
         loss_common = self.tapes['common'].apply_tape(self.tape_com, loss_common, self.common_layer.trainable_variables)
 
         return self.alpha_common * loss_common
-
-
-class DiscreteActorCriticAgent(DiscreteActorCriticCore):
-
-    def __init__(
-            self,
-
-            env,
-            logger,
-            max_steps_per_episode: int,
-
-            gamma: float = 0.9,
-            standardize: str = None,
-            g_mean: float = 0.0,
-            g_rate: float = 0.15,
-            discount_rewards: str = None,
-            normalize_rewards: str = None,
-            reward_range: tuple = None,
-            dynamic_rate: float = 0.15,
-            auto_transform_actions: bool = True,
-
-            alpha_common: float = 1.0,
-            alpha_actor: float = 1.0,
-            alpha_critic: float = 1.0,
-
-            loss_func_critic: tf.keras.losses.Loss = None,
-            loss_func_actor=None,
-
-            tape_common: ParallelGradientTape = None,
-            tape_actor: ParallelGradientTape = None,
-            tape_critic: ParallelGradientTape = None,
-
-            common_layer=None,
-            actor_layer=None,
-            critic_layer=None,
-
-            common_hidden=1,
-            actor_hidden=1,
-            critic_hidden=1,
-
-            common_units=32,
-            actor_units=128,
-            critic_units=128,
-
-            actor_activation='softmax',
-            critic_activation=None,
-    ):
-
-        super(DiscreteActorCriticAgent).__init__(*args, **kwargs)
-
-        self.env = env
-        self.finish_init(0, logger, n_actions)
-        self.max_steps_per_episode = max_steps_per_episode
-
-    def train_agent(self, num_episodes):
-
-        for e in range(num_episodes):
-
-            state = self.env.reset()
-
-            self.start_gradient_recording()
-
-            for t in range(self.max_steps_per_episode):
-
-                action = self.act(state, t)
-                state, reward, done, _ = self.env.step(action.numpy())
-
-                self.reward(reward, t)
-
-                if tf.cast(done, tf.bool):
-                    break
-
-            self.calc_loss_and_update_weights()
-
-            self.logger.print_status(self.env.count_episodes)
-
-    def test_agent(self, num_episodes):
-
-        for e in range(num_episodes):
-
-            state = self.env.reset()
-
-            for t in range(self.max_steps_per_episode):
-
-                action = self.act(state, t)
-                state, reward, done, _ = self.env.step(action.numpy())
-
-                self.reward(reward, t)
-
-                if tf.cast(done, tf.bool):
-                    break
-            self.logger.print_status(self.env.count_episodes)

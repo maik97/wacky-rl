@@ -1,10 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers
-from tensorflow.python.keras.optimizer_v2 import optimizer_v2
 from gym import spaces
 
-from main.agents.agent_memory import LoggingTensorArray
+from wacky_rl.memory.memory import LoggingTensorArray
 
 
 def transform_box_to_discrete(dims, act_space):

@@ -1,15 +1,13 @@
 '''
 
 '''
-import numpy as np
-import tensorflow as tf
 import tensorflow.keras as keras
 from tensorflow.keras import layers
 from tensorflow.python.keras.optimizer_v2 import optimizer_v2
 from gym import spaces
 
-from main.agents.multi_agent import MultiAgent
-from main.logger import TrainingLogger, StatusPrinter
+from wacky_rl.multi_agent import MultiAgent
+from wacky_rl.logger import TrainingLogger, StatusPrinter
 
 
 class BaseCommonNetwork:
@@ -101,7 +99,7 @@ class BaseCommonNetwork:
 
 
 
-class BaseAgentBuilder:
+class MultiAgentCompiler:
 
     def __init__(self, env, log_dir=None, CommonNetwork=None, name='test'):
 
@@ -189,7 +187,7 @@ class BaseAgentBuilder:
             tau: float = 0.15,
             target_update: (None, int) = 1,
             max_steps_per_episode = 1000,
-            actions_as_list = True
+            actions_as_list = False
         ):
 
         self.check_actions_for_assignment(dont_break=False)
