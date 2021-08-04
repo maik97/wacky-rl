@@ -10,7 +10,7 @@ setup(
   author = 'Maik Schürmann',
   author_email = 'maik.schuermann97@gmail.com',
   url = 'https://github.com/maik97',
-  download_url = 'https://github.com/user/reponame/archive/v_01.tar.gz',
+  download_url = 'https://github.com/maik97/wacky-rl/archive/refs/tags/v0.0.1-alpha.tar.gz',
   keywords = ['rl', 'actor_critic', 'reinforcement-learning'],
   install_requires=[
           'tensorflow',
