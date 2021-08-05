@@ -103,9 +103,6 @@ class MultiAgentCompiler:
 
     def __init__(self, env, log_dir=None, CommonNetwork=None, name='test'):
 
-        print('test')
-        exit()
-
         self.env = env
         try:
             self.name = env.name
