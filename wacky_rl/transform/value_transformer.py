@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
+
 def transform_box_to_discrete(dims, act_space):
     n = dims^(np.sum(act_space.shape))
     return n, tf.constant(act_space.high, dtype=tf.float32), tf.constant(act_space.low, dtype=tf.float32)

@@ -1,47 +1,30 @@
-import numpy as np
 import tensorflow as tf
 
-class LoggingTensorArray:
 
-    def __init__(self, name, logger):
+class BasicMemory:
 
-        self.name = name
-        self.logger = logger
+    def __init__(self):
+        self.mem = None
+        self.t = 0
 
-    def reset_tensor(
-            self,
-            dtype,
-            size= None,
-            dynamic_size= None,
-            clear_after_read= None,
-            tensor_array_name= None,
-            handle= None,
-            flow= None,
-            infer_shape= True,
-            element_shape= None,
-            colocate_with_first_write_call= True,
-            op_name= None
-    ):
 
-        self.tf_array = tf.TensorArray(
-            dtype, size, dynamic_size, clear_after_read, tensor_array_name, handle, flow, infer_shape, element_shape,
-            colocate_with_first_write_call, op_name)
+    def remember(self, tensor_list):
 
-    def write_to_tensor(self,t, val):
+        if self.mem is None:
+            self.mem = [
+                tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True, clear_after_read=True) for e in tensor_list
+            ]
 
-        self.tf_array = self.tf_array.write(index=t,value=val)
 
-    def stack_tensor(self, op_name=None, exp_dims=True, log_mean=True, log_sum=False):
+        self.write_to_mem(self.t, [tf.cast(elem,tf.float32) for elem in tensor_list] )
+        self.t = self.t + 1
 
-        tf_array = tf.squeeze(self.tf_array.stack(op_name))
+    def write_to_mem(self, t, tensor_list):
+        for i in tf.range(len(tensor_list)):
+            self.mem[i] = self.mem[i].write(tf.cast(t,tf.int32), tf.cast(tensor_list[i],tf.float32))
 
-        if log_mean:
-            self.logger.log_mean(str(self.name), np.mean(tf_array.numpy()))
-
-        if log_sum:
-            self.logger.log_mean(str(self.name)+'_sum', np.sum(tf_array.numpy()))
-
-        if exp_dims:
-            return tf.expand_dims(tf_array, 1)
-        return tf_array
-
+    def recall(self):
+        mem_list = [elem.stack() for elem in self.mem]
+        self.mem = None
+        self.t = 0
+        return mem_list

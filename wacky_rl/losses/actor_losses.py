@@ -7,7 +7,7 @@ class DiscreteActorLoss:
             entropy_factor: float = 0.0001,
             loss_transform: str = None,
     ):
-        if not self.entropy_factor is None:
+        if not entropy_factor is None:
             self.entropy_factor = tf.constant(entropy_factor, dtype=tf.float32)
 
         self.loss_transform = loss_transform

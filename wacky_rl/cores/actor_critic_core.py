@@ -33,7 +33,7 @@ class ActorCriticCore(AgentCore):
         if common_model == 'auto':
 
             if common_loss is None:
-                common_loss = wacky_rl.losses.SumLosses(alphas=(0.5, 0.5))
+                common_loss = wacky_rl.losses.SumMultipleLosses(alpha_list=[0.5, 0.5])
 
             self.common_model = WackyModel(
                 model_layer = [layers.Dense(64, activation='relu')],
@@ -80,7 +80,7 @@ class ActorCriticCore(AgentCore):
             self.memory = memory
 
         if calc_returns is None:
-            self.calc_returns = wacky_rl.returns.BasicResturns()
+            self.calc_returns = wacky_rl.transform.ExpectedReturnsCalculator()
         else:
             self.calc_returns = calc_returns
 
@@ -93,7 +93,7 @@ class ActorCriticCore(AgentCore):
         state_value = self.critic_model(inputs)
         action, act_prob, log_prob = self.actor_model(inputs)
 
-        self.memory.remember(state_value, action, act_prob, log_prob)
+        self.memory.remember([state_value, action, act_prob, log_prob])
 
         return action
 

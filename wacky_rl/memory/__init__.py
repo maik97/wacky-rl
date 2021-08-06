@@ -1,1 +1,1 @@
-from wacky_rl.memory.memory import LoggingTensorArray
+from wacky_rl.memory.memory import BasicMemory

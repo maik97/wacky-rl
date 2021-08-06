@@ -16,7 +16,7 @@ class AgentCore:
 
         raise NotImplementedError('Method "train" must be implemented!')
 
-    def decode_action_space(self, gym_space):
+    def decode_space(self, gym_space):
 
         from gym import spaces
 
@@ -24,7 +24,7 @@ class AgentCore:
             import numpy as np
             return int(np.squeeze(gym_space.shape))
 
-        elif isinstance(gym_space, spaces.Box):
+        elif isinstance(gym_space, spaces.Discrete):
             return int(gym_space.n)
 
         else:

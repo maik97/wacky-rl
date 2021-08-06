@@ -25,8 +25,13 @@ class DiscreteActorActionAlternative:
 
     def __call__(self, x):
 
-        action = tf.random.categorical(x[0], 1)[0, 0]
-        act_prob = tf.squeeze(tf.nn.softmax(x[0])[0, action])
+        print(x)
+
+        x = tf.expand_dims(tf.squeeze(x), 0)
+        print(x)
+
+        action = tf.random.categorical(x, 1)[0, 0]
+        act_prob = tf.squeeze(tf.nn.softmax(x)[0, action])
         log_prob = tf.math.log(act_prob)
 
         return action, act_prob, log_prob
