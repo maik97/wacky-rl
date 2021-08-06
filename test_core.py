@@ -5,7 +5,7 @@ from wacky_rl.wacky_tape.wacky_tape import ParallelGradientTape
 from wacky_rl.losses import discrete_actor_loss_with_tfp
 from wacky_rl.models import BaseLayers
 from wacky_rl.memory import LoggingTensorArray
-from wacky_rl.act_calcs import act_discrete_actor_critic, act_discrete_actor_critic_with_tfp
+from wacky_rl.actions import act_discrete_actor_critic, act_discrete_actor_critic_with_tfp
 
 
 class DiscreteActorCriticCore(BaseAgentCore):

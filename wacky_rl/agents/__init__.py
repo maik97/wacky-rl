@@ -1,1 +1,1 @@
-from wacky_rl.agents.discrete_actor_critic import DiscreteActorCriticCore
+from wacky_rl.agents.actor_critic import A2C

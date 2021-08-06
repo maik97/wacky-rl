@@ -1,1 +1,0 @@
-from wacky_rl.act_calcs.act_functions import act_discrete_actor_critic, act_discrete_actor_critic_with_tfp

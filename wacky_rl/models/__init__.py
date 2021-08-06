@@ -1,1 +1,1 @@
-from wacky_rl.models.models import BaseLayers
+from wacky_rl.models.wacky_model import WackyModel
