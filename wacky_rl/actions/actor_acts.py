@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -24,20 +25,18 @@ class DiscreteActorAction:
 
     def __call__(self, x, training=None):
 
-        x = tf.squeeze(x)
-
         if not training is None:
             act_argmax = training['act_argmax']
         else:
             act_argmax = False
 
         if act_argmax:
-            action = tf.squeeze(tf.math.argmax(x))
+            action = tf.math.argmax(x[0], axis=-1)
         else:
-            action = tf.squeeze(tf.random.categorical(tf.expand_dims(x, 0), 1))
+            action = tf.random.categorical(x[0], num_samples=1)[0]
 
-        act_prob = tf.squeeze(tf.nn.softmax(tf.expand_dims(x, 0))[0, action])
-        log_prob = tf.squeeze(tf.math.log(act_prob))
+        act_prob = tf.gather_nd(tf.nn.softmax(x[0]), tf.stack([np.arange(len(action)), action], axis=1))
+        log_prob = tf.math.log(act_prob)
 
         return action, act_prob, log_prob
 
@@ -48,9 +47,7 @@ class SoftDiscreteActorAction(DiscreteActorAction):
 
     def __call__(self, x, training=None):
         action, act_prob, log_prob = super().__call__(x, training=None)
-        #print(x)
-        #print(len(x))
-        action_as_input = tf.expand_dims(tf.one_hot(action, len(tf.squeeze(x))),0)
+        action_as_input = tf.one_hot(action, len(tf.squeeze(x)))
         return action, act_prob, log_prob, action_as_input
 
 

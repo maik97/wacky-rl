@@ -104,6 +104,7 @@ class WackyModel(tf.keras.Model):
         self._wacky_tape = tf.GradientTape(persistent=True)
 
     def _wacky_forward(self, x):
+        #print(x)
         for l in self._wacky_layer: x = l(x)
         if not self._wacky_outputs is None:
             return [out(x) for out in self._wacky_outputs]
