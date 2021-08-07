@@ -41,7 +41,9 @@ class SoftActorLoss:
     def __init__(self):
         pass
 
-    def __call__(self, batch_input, batch_action_as_input, log_probs, q_models):
+    def __call__(self, batch_input, actor_model, q_models):
+
+        _, _, log_probs, batch_action_as_input = actor_model(batch_input)
 
         if not isinstance(q_models, list):
             q_models = [q_models]

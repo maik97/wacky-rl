@@ -33,7 +33,7 @@ class DiscreteActorAction:
         if act_argmax:
             action = tf.math.argmax(x[0], axis=-1)
         else:
-            action = tf.random.categorical(x[0], num_samples=1)[0]
+            action = tf.squeeze(tf.random.categorical(x[0], num_samples=1), axis=1)
 
         act_prob = tf.gather_nd(tf.nn.softmax(x[0]), tf.stack([np.arange(len(action)), action], axis=1))
         log_prob = tf.math.log(act_prob)
@@ -42,12 +42,13 @@ class DiscreteActorAction:
 
 class SoftDiscreteActorAction(DiscreteActorAction):
 
-    def __init__(self):
+    def __init__(self, n_actions):
         super().__init__()
+        self.n_actions = n_actions
 
     def __call__(self, x, training=None):
         action, act_prob, log_prob = super().__call__(x, training=None)
-        action_as_input = tf.one_hot(action, len(tf.squeeze(x)))
+        action_as_input = tf.one_hot(action, self.n_actions)
         return action, act_prob, log_prob, action_as_input
 
 
