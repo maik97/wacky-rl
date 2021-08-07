@@ -1,30 +1,30 @@
 import tensorflow as tf
+from collections import deque
+import random
 
 
 class BasicMemory:
 
     def __init__(self):
-        self.mem = None
-        self.t = 0
-
+        self.mem = deque()
 
     def remember(self, tensor_list):
+        self.mem.append([tf.squeeze(elem) for elem in tensor_list])
 
-        if self.mem is None:
-            self.mem = [
-                tf.TensorArray(dtype=tf.float32, size=0, dynamic_size=True, clear_after_read=True) for e in tensor_list
-            ]
+    def recall(self, *args, **kwargs):
+        mem_list = list(zip(*list(self.mem)))
+        self.mem.clear()
+        return [tf.expand_dims(tf.stack(elem),1) for elem in mem_list]
 
 
-        self.write_to_mem(self.t, [tf.cast(elem,tf.float32) for elem in tensor_list] )
-        self.t = self.t + 1
+class ReplayBuffer(BasicMemory):
 
-    def write_to_mem(self, t, tensor_list):
-        for i in tf.range(len(tensor_list)):
-            self.mem[i] = self.mem[i].write(tf.cast(t,tf.int32), tf.cast(tensor_list[i],tf.float32))
+    def __init__(self):
+        super().__init__()
 
-    def recall(self):
-        mem_list = [elem.stack() for elem in self.mem]
-        self.mem = None
-        self.t = 0
-        return mem_list
+    def recall(self, batch_size):
+        batch_size = min(batch_size, len(self.mem))
+        mem_list = random.sample(self.mem, batch_size)
+        mem_list = list(zip(*list(mem_list)))
+        self.mem.clear()
+        return [tf.expand_dims(tf.stack(elem), 1) for elem in mem_list]

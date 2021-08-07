@@ -1,2 +1,3 @@
 from wacky_rl.actions.actor_acts import DiscreteActorAction
 from wacky_rl.actions.actor_acts import DiscreteActorActionAlternative
+from wacky_rl.actions.actor_acts import ContinActorAction

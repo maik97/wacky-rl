@@ -1,5 +1,8 @@
 import tensorflow as tf
 
+def pre_calced_loss(loss):
+    return loss
+
 class SumMultipleLosses:
 
     def __init__(self, alpha_list: list = None):

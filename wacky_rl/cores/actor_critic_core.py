@@ -47,7 +47,7 @@ class ActorCriticCore(AgentCore):
         if actor_model is None:
 
             if actor_loss is None:
-                actor_loss = wacky_rl.losses.DiscreteActorLoss()
+                actor_loss = wacky_rl.losses.ActorLoss()
 
             if actor_out_func is None:
                 actor_out_func = wacky_rl.actions.DiscreteActorAction()
@@ -85,7 +85,7 @@ class ActorCriticCore(AgentCore):
             self.calc_returns = calc_returns
 
 
-    def act(self, inputs):
+    def act(self, inputs, act_argmax=False):
 
         if not self.common_model is None:
             inputs = self.common_model(inputs)

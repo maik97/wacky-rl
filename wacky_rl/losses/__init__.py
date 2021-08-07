@@ -1,2 +1,3 @@
-from wacky_rl.losses.actor_losses import DiscreteActorLoss
+from wacky_rl.losses.actor_losses import ActorLoss
 from wacky_rl.losses.combine_losses import SumMultipleLosses
+from wacky_rl.losses.combine_losses import pre_calced_loss

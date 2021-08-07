@@ -5,16 +5,16 @@ class AgentCore:
     def __init__(self):
         pass
 
-    def __call__(self, inputs):
-        return self.act(inputs)
+    def __call__(self, *args, **kwargs):
+        return self.act( *args, **kwargs)
 
-    def act(self, inputs):
-        raise NotImplementedError('Method "act" must be implemented!')
+    def act(self, inputs, act_argmax=False):
+        raise NotImplementedError('When subclassing the `AgentCore` class, you should '
+                                  'implement a `act` method.')
 
-
-    def train(self, rewards):
-
-        raise NotImplementedError('Method "train" must be implemented!')
+    def train(self, *args, **kwargs):
+        raise NotImplementedError('When subclassing the `AgentCore` class, you should '
+                                  'implement a `train` method.')
 
     def decode_space(self, gym_space):
 
@@ -29,3 +29,11 @@ class AgentCore:
 
         else:
             raise AttributeError('gym_space not understood: {}, use space.Box or space.Discrete'.format(gym_space))
+
+    def space_is_contin(self, gym_space):
+        from gym import spaces
+        return isinstance(gym_space, spaces.Box)
+
+    def space_is_discrete(self, gym_space):
+        from gym import spaces
+        return isinstance(gym_space, spaces.Discrete)

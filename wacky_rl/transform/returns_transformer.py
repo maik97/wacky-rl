@@ -21,7 +21,7 @@ class ExpectedReturnsCalculator:
     def __call__(self, rewards):
 
         sample_len = tf.shape(rewards)[0]
-        self.returns = tf.TensorArray(dtype=tf.float32, size=sample_len)
+        returns = tf.TensorArray(dtype=tf.float32, size=sample_len)
 
         rewards = tf.cast(rewards[::-1], dtype=tf.float32)
 
@@ -32,9 +32,9 @@ class ExpectedReturnsCalculator:
 
             discounted_sum = rewards[i] + self.gamma * discounted_sum
             discounted_sum.set_shape(discounted_sum_shape)
-            self.returns.write_to_tensor(i, discounted_sum)
+            returns = returns.write(i, discounted_sum)
 
-        returns = self.returns.stack_tensor()[::-1]
+        returns = returns.stack()[::-1]
 
         if self.static_standardize:
             returns = ((returns - tf.math.reduce_mean(returns)) /
