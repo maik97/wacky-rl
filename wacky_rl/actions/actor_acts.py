@@ -41,6 +41,18 @@ class DiscreteActorAction:
 
         return action, act_prob, log_prob
 
+class SoftDiscreteActorAction(DiscreteActorAction):
+
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, x, training=None):
+        action, act_prob, log_prob = super().__call__(x, training=None)
+        #print(x)
+        #print(len(x))
+        action_as_input = tf.expand_dims(tf.one_hot(action, len(tf.squeeze(x))),0)
+        return action, act_prob, log_prob, action_as_input
+
 
 class ContinActorAction:
 
@@ -73,9 +85,25 @@ class ContinActorAction:
         log_probs = log_probs - tf.math.log(1 - tf.math.pow(action, 2) + self.rp)
 
         if self.log_prob_transform == 'sum':
-            return action, tf.math.reduce_mean(act_probs), tf.math.reduce_sum(log_probs)
+            return action, act_probs, tf.math.reduce_sum(log_probs)
 
         if self.log_prob_transform == 'mean':
-            return action, tf.math.reduce_mean(act_probs), tf.math.reduce_sum(log_probs)
+            return action, act_probs, tf.math.reduce_sum(log_probs)
 
-        return action, tf.math.reduce_mean(act_probs), log_probs
+        return action, act_probs, log_probs
+
+
+class SoftContinActorAction(ContinActorAction):
+
+    def __init__(
+            self,
+            reparam: bool = False,
+            rp=1e-6,
+            log_prob_transform: str = 'sum'
+    ):
+        super().__init__(reparam, rp, log_prob_transform)
+
+    def __call__(self, x, training=None):
+        action, act_prob, log_prob = super().__call__(x, training=None)
+        action_as_input = tf.expand_dims(action, 0)
+        return action, act_prob, log_prob, action_as_input

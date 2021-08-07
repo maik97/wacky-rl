@@ -9,7 +9,7 @@ class BasicMemory:
         self.mem = deque()
 
     def remember(self, tensor_list):
-        self.mem.append([tf.squeeze(elem) for elem in tensor_list])
+        self.mem.append([tf.squeeze(tf.cast(elem, dtype=tf.float32)) for elem in tensor_list])
 
     def recall(self, *args, **kwargs):
         mem_list = list(zip(*list(self.mem)))
