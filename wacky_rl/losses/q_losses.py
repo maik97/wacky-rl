@@ -2,16 +2,20 @@ import tensorflow as tf
 
 class SoftQLoss:
 
-    def __init__(self, scale:float = 1.0, gamma:float = 0.99):
+    def __init__(self, scale:float = 2.0, gamma:float = 0.99):
         self.scale = scale
         self.gamma = gamma
 
-    def __call__(self, batch_input, batch_next_inputs, rewards, dones, actor_model, q_model, target_q_model):
+    def __call__(self, batch_input, batch_next_inputs, action_as_input, rewards, one_minus_dones, q_model, target_val_model):
 
-        _, _, _, action_as_input = actor_model(batch_input)
-        _, _, _, next_action_as_input = actor_model(batch_next_inputs)
+        #_, _, _, action_as_input = actor_model(batch_input, {'act_argmax': True})
 
-        future_vals = tf.squeeze(target_q_model([batch_next_inputs, next_action_as_input]))
+        future_vals = target_val_model(batch_next_inputs)
 
-        target_q = self.scale * tf.squeeze(rewards) + self.gamma * future_vals * (1-tf.squeeze(dones))
-        return tf.keras.losses.MSE(target_q, tf.squeeze(q_model([batch_input, action_as_input])))
+        target_q = self.scale * tf.squeeze(rewards) + self.gamma * tf.squeeze(future_vals) * tf.squeeze(one_minus_dones)
+        target_q = tf.reshape(target_q, [-1,1])
+
+        action_as_input = tf.reshape(action_as_input, [-1, tf.shape(action_as_input)[-1]])
+        pred_q = q_model([batch_input, action_as_input])
+
+        return tf.keras.losses.MSE(target_q, pred_q)

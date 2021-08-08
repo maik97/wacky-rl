@@ -34,9 +34,6 @@ class QAction:
         return tf.random.uniform(shape=[], maxval=len(x), dtype=tf.int32)
 
 
-class SoftQAction:
-
-
 
 class DDDQNAction:
 

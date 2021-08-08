@@ -130,6 +130,9 @@ class WackyModel(tf.keras.Model):
     def train_step(self, *args, **kwargs):
 
         self._wacky_tape._ensure_recording()
+        #if not self._wacky_tape._recording:
+            #self._wacky_tape._push_tape()
+            #self._wacky_tape.watch(self.trainable_variables)
 
         loss = self.loss_alpha * self._wacky_loss(*args, **kwargs)
 

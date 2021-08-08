@@ -30,6 +30,7 @@ class DiscreteActorAction:
         else:
             act_argmax = False
 
+        #act_argmax = True
         if act_argmax:
             action = tf.math.argmax(x[0], axis=-1)
         else:
@@ -77,7 +78,8 @@ class ContinActorAction:
         if self.reparam:
             actions += tf.random.normal(shape=tf.shape(actions), mean=0.0, stddev=0.1)
 
-        action = tf.squeeze(tf.math.tanh(actions))
+        action = tf.math.tanh(actions)
+        #action = tf.squeeze(action)
         act_probs = tf.squeeze(act_probs_dist.prob(actions))
         log_probs = tf.squeeze(act_probs_dist.log_prob(actions))
         log_probs = log_probs - tf.math.log(1 - tf.math.pow(action, 2) + self.rp)
@@ -103,5 +105,10 @@ class SoftContinActorAction(ContinActorAction):
 
     def __call__(self, x, training=None):
         action, act_prob, log_prob = super().__call__(x, training=None)
-        action_as_input = tf.expand_dims(action, 0)
+        action_as_input = tf.reshape(action, [-1,tf.shape(action)[-1]])
+        #print(tf.shape(action_as_input))
+        #action_as_input = tf.expand_dims(action, 0)
+        #print(x)
+        #print(action_as_input)
+        #exit()
         return action, act_prob, log_prob, action_as_input
