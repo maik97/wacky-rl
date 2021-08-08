@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class SoftValueLoss:
 
-    def __init__(self, train_with_argmax=False):
+    def __init__(self, train_with_argmax=True):
         self.train_with_argmax = train_with_argmax
 
     def __call__(self, batch_input, actor_model, q_models, val_model):
