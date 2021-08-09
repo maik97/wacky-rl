@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-class ActorLoss:
+class BaseActorLoss:
 
     def __init__(
             self,
@@ -14,48 +14,74 @@ class ActorLoss:
 
         self.loss_transform = loss_transform
 
+    def __call__(self, *args, **kwargs):
+        pass
+
+    def _add_entropy_loss(self, loss, act_probs, log_probs):
+        if not self.entropy_factor is None:
+            return loss + self.entropy_factor * tf.math.multiply(act_probs, log_probs)
+        else:
+            return loss
+
+    def _return_loss(self, loss):
+
+        loss = tf.squeeze(loss)
+
+        if self.loss_transform == 'mean':
+            return tf.math.reduce_mean(loss)
+
+        if self.loss_transform == 'sum':
+            return tf.math.reduce_sum(loss)
+
+        return loss
+
+
+
+class ActorLoss(BaseActorLoss):
+
+    def __init__(
+            self,
+            entropy_factor: float = None,
+            loss_transform: str = None,
+    ):
+        super().__init__(entropy_factor, loss_transform)
+
     def __call__(self, act_probs, log_probs, advantage):
 
         act_probs = tf.squeeze(act_probs)
         log_probs = tf.squeeze(log_probs)
         advantage = tf.squeeze(advantage)
 
-        loss_actor = tf.math.negative(tf.math.multiply(log_probs, advantage))
+        loss = tf.math.negative(tf.math.multiply(log_probs, advantage))
+        loss = self._add_entropy_loss(loss, act_probs, log_probs)
+        return self._return_loss(loss)
 
-        if not self.entropy_factor is None:
-            entropy_loss = self.entropy_factor * tf.math.multiply(act_probs, log_probs)
-            loss_actor = loss_actor + entropy_loss
 
-        loss_actor = tf.squeeze(loss_actor)
+class SoftActorLoss(BaseActorLoss):
 
-        if self.loss_transform == 'mean':
-            return tf.math.reduce_mean(loss_actor)
-
-        if self.loss_transform == 'sum':
-            return tf.math.reduce_sum(loss_actor)
-
-        return tf.expand_dims(loss_actor, 1)
-
-class SoftActorLoss:
-
-    def __init__(self, train_with_argmax=True):
+    def __init__(
+            self,
+            entropy_factor: float = None,
+            loss_transform: str = None,
+            train_with_argmax=False
+    ):
         self.train_with_argmax = train_with_argmax
+        super().__init__(entropy_factor, loss_transform)
 
-    def __call__(self, batch_input, actor_model, q_models):
+    def __call__(self, batch_input, actor_model, q_model, dual_q_model=None):
 
-        _, _, log_probs, batch_action_as_input = actor_model(batch_input, {'act_argmax': self.train_with_argmax})
+        _, act_probs, log_probs, batch_action_as_input = actor_model.predict_step(batch_input, act_argmax=self.train_with_argmax)
 
-        if not isinstance(q_models, list):
-            q_models = [q_models]
+        q = q_model.predict_step([batch_input, batch_action_as_input])
 
-        q_list = [tf.squeeze(q_model([batch_input, batch_action_as_input])) for q_model in q_models]
-        # q = tf.stack(q_list, axis=-1)
-        # q = tf.math.reduce_min(q, axis=1)
-        q = tf.math.minimum(tf.squeeze(q_list[0]), tf.squeeze(q_list[1]))
+        if not dual_q_model is None:
+            dual_q = dual_q_model.predict_step([batch_input, batch_action_as_input])
+            q = tf.math.minimum(q, dual_q)
 
-        loss = tf.squeeze(log_probs) - q
 
-        return tf.reduce_mean(loss)
+        loss = tf.squeeze(log_probs) - tf.squeeze(q)
+        loss = self._add_entropy_loss(loss, act_probs, log_probs)
+        return self._return_loss(loss)
 
 
 class PPOActorLoss:

@@ -15,7 +15,7 @@ class DiscreteActorActionAlternative:
         act_prob = dist.prob(action)
         log_prob = dist.log_prob(action)
 
-        return action, act_prob, log_prob
+        return [action, act_prob, log_prob]
 
 
 class DiscreteActorAction:
@@ -23,12 +23,7 @@ class DiscreteActorAction:
     def __init__(self):
         pass
 
-    def __call__(self, x, training=None):
-
-        if not training is None:
-            act_argmax = training['act_argmax']
-        else:
-            act_argmax = False
+    def __call__(self, x, act_argmax=False):
 
         #act_argmax = True
         if act_argmax:
@@ -39,7 +34,7 @@ class DiscreteActorAction:
         act_prob = tf.gather_nd(tf.nn.softmax(x[0]), tf.stack([np.arange(len(action)), action], axis=1))
         log_prob = tf.math.log(act_prob)
 
-        return action, act_prob, log_prob
+        return [action, act_prob, log_prob]
 
 class SoftDiscreteActorAction(DiscreteActorAction):
 
@@ -47,10 +42,10 @@ class SoftDiscreteActorAction(DiscreteActorAction):
         super().__init__()
         self.n_actions = n_actions
 
-    def __call__(self, x, training=None):
-        action, act_prob, log_prob = super().__call__(x, training=None)
+    def __call__(self, x, act_argmax=False):
+        action, act_prob, log_prob = super().__call__(x, act_argmax)
         action_as_input = tf.one_hot(action, self.n_actions)
-        return action, act_prob, log_prob, action_as_input
+        return [action, act_prob, log_prob, action_as_input]
 
 
 class ContinActorAction:
@@ -65,7 +60,7 @@ class ContinActorAction:
         self.rp =rp
         self.log_prob_transform = log_prob_transform
 
-    def __call__(self, x, training=None):
+    def __call__(self, x, act_argmax=False):
 
         mu, sigma = x
         mu = tf.squeeze(mu)
@@ -90,7 +85,7 @@ class ContinActorAction:
         if self.log_prob_transform == 'mean':
             return action, act_probs, tf.math.reduce_sum(log_probs)
 
-        return action, act_probs, log_probs
+        return [action, act_probs, log_probs]
 
 
 class SoftContinActorAction(ContinActorAction):
@@ -103,12 +98,12 @@ class SoftContinActorAction(ContinActorAction):
     ):
         super().__init__(reparam, rp, log_prob_transform)
 
-    def __call__(self, x, training=None):
-        action, act_prob, log_prob = super().__call__(x, training=None)
+    def __call__(self, x, act_argmax=False):
+        action, act_prob, log_prob = super().__call__(x, act_argmax)
         action_as_input = tf.reshape(action, [-1,tf.shape(action)[-1]])
         #print(tf.shape(action_as_input))
         #action_as_input = tf.expand_dims(action, 0)
         #print(x)
         #print(action_as_input)
         #exit()
-        return action, act_prob, log_prob, action_as_input
+        return [action, act_prob, log_prob, action_as_input]

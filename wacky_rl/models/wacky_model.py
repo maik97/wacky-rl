@@ -110,29 +110,43 @@ class WackyModel(tf.keras.Model):
             return [out(x) for out in self._wacky_outputs]
         return x
 
-    def call(self, inputs, training=None, mask=None):
-
-        # Start Tape Recording if necessary:
+    def _start_wacky_recording(self):
         if not self._wacky_tape._recording:
             self._wacky_tape._push_tape()
             self._wacky_tape.watch(self.trainable_variables)
+
+    def _stop_wacky_recording(self):
+        self._wacky_tape._recording = False
+        # self._wacky_tape.stop_recording()
+
+    #def _continue_wacky_recording(self):
+        #self._wacky_tape._recording = True
+
+    #def _ensure_wacky_recording(self):
+        #self._wacky_tape._ensure_recording()
+
+
+    def call(self, inputs, training=True, mask=None, *args, **kwargs):
+
+        # Start Tape Recording if necessary:
+        if not self._wacky_tape._recording and training:
+            self._start_wacky_recording()
 
         # Feedforward:
         x = self._wacky_forward(inputs)
 
         # Transform outputs if needed (for example to calculate actions):
         if not self._wacky_out_func is None:
-            if training is None:
-                return self._wacky_out_func(x)
-            return self._wacky_out_func(x, training)
+            x = self._wacky_out_func(x, *args, **kwargs)
+
+        if training:
+            self._stop_wacky_recording()
+
         return x
 
     def train_step(self, *args, **kwargs):
 
-        self._wacky_tape._ensure_recording()
-        #if not self._wacky_tape._recording:
-            #self._wacky_tape._push_tape()
-            #self._wacky_tape.watch(self.trainable_variables)
+        self._start_wacky_recording()
 
         loss = self.loss_alpha * self._wacky_loss(*args, **kwargs)
 
@@ -145,6 +159,64 @@ class WackyModel(tf.keras.Model):
 
         return loss
 
+    def predict_step(self, data, mask=None, *args, **kwargs):
+        return self.call(data, training=False, mask=mask, *args, **kwargs)
+
+
+class WackyDualingModel:
+
+    def __init__(
+            self,
+            model_layer: (list, layers.Layer) = None,
+            model_outputs: (list, layers.Layer) = None,
+            optimizer: optimizers.Optimizer = None,
+            learning_rate: float = None,  # not used when model_layer provided
+            loss=None,
+            loss_alpha: float = 1.0,
+            out_function=None,
+            model_name: str = 'UnnamedWackyModel',
+            model_index: int = None,
+    ):
+
+        self.model_1 = WackyModel(model_layer, model_outputs, optimizer, learning_rate,
+                       loss, loss_alpha, None, model_name+'_1', model_index)
+
+        self.model_2 = WackyModel(model_layer, model_outputs, optimizer, learning_rate,
+                        loss, loss_alpha, None, model_name+'_2', model_index)
+
+        self._wacky_out_func = out_function
+
+    @property
+    def is_dualing(self):
+        return True
+
+    def __call__(self, inputs, training=True, mask=None, *args, **kwargs):
+
+        x_1 = self.model_1(inputs, training, mask)
+        x_2 = self.model_2(inputs, training, mask)
+
+        self.model_1._continue_wacky_recording()
+        self.model_2._continue_wacky_recording()
+
+        x = tf.math.minimum(x_1, x_2)
+
+        if not self._wacky_out_func is None:
+            x = self._wacky_out_func(x, *args, **kwargs)
+
+        if training:
+            self.model_1._stop_wacky_recording()
+            self.model_2._stop_wacky_recording()
+        return x
+
+    def train_step(self, *args, **kwargs):
+        loss_1 = self.model_1.train_step(*args, **kwargs)
+        loss_2 = self.model_2.train_step(*args, **kwargs)
+        return tf.reduce_mean([loss_1, loss_2], 0)
+
+    def predict_step(self, data, mask=None, *args, **kwargs):
+        return self(data, training=False, mask=mask, *args, **kwargs)
+
+
 
 class TargetUpdate:
 
@@ -153,6 +225,16 @@ class TargetUpdate:
 
     def __call__(self, model: tf.keras.Model, target: tf.keras.Model):
 
+        if hasattr(model, 'is_dualing'):
+            if model.is_dualing:
+                target.model_1 = self._update_target(target.model_1, model.model_1)
+                target.model_2 = self._update_target(target.model_2, model.model_2)
+                return target
+
+        return self._update_target(model, target)
+
+
+    def _update_target(self, model, target):
         weights = model.get_weights()
         target_weights = target.get_weights()
 
@@ -160,5 +242,24 @@ class TargetUpdate:
             target_weights[i] = weights[i] * self.tau + target_weights[i] * (1 - self.tau)
 
         target.set_weights(target_weights)
-
         return target
+
+
+class TargetModelWrapper:
+
+    def __init__(self, model, tau: float = 0.15):
+
+        import copy
+
+        self.model = model
+        self.target = copy.deepcopy(model)
+        self._update_target = TargetUpdate(tau)
+
+    def __call__(self, *args, **kwargs):
+        return self.model( *args, **kwargs)
+
+    def train_step(self, *args, **kwargs):
+        return self.model.train_step(*args,**kwargs)
+
+    def update_target(self):
+        self.target_model = self._update_target(self.model, self.target)

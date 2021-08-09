@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 from collections import deque
 import random
@@ -25,9 +26,14 @@ class ReplayBuffer(BasicMemory):
     def remember(self, tensor_list):
         super().remember(tensor_list)
 
-    def recall(self, batch_size=32):
+    def sample(self, batch_size=32):
         batch_size = min(batch_size, len(self.mem))
         mem_list = random.sample(self.mem, batch_size)
+        mem_list = list(zip(*list(mem_list)))
+        return [tf.stack(elem) for elem in mem_list]
+
+    def _sample_by_indices(self, indices):
+        mem_list = self.mem[indices]
         mem_list = list(zip(*list(mem_list)))
         return [tf.stack(elem) for elem in mem_list]
 
@@ -45,5 +51,25 @@ class ShortTermLongTermBuffer:
     def recall_short_term(self):
         return self.short_term_mem.recall()
 
-    def recall_long_term(self, batch_size=64):
+    def sample_long_term(self, batch_size=64):
         return self.long_term_mem.recall(batch_size)
+
+
+class PriorityBuffer:
+
+    def __init__(self, maxlen, initital_prio=1.0):
+        self.mem = ReplayBuffer(maxlen=maxlen)
+        self.prio_mem = deque(maxlen=maxlen)
+        self.initital_prio = initital_prio
+
+    def remember(self, tensor_list):
+        self.mem.remember(tensor_list)
+        [self.prio_mem.append(self.initital_prio) for i in range(len(tensor_list[0]))]
+
+    def sample(self):
+        self.cur_indices = None
+
+    def update_priority(self, priorities):
+        self.prio_mem[self.cur_indices] = priorities
+
+
