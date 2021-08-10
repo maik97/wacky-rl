@@ -120,43 +120,17 @@ class PPOActorLoss(BaseActorLoss):
         for pb, t, op in zip(probs, advantage, old_probs):
             t = tf.constant(t)
             op = tf.constant(op)
-            # print(f"t{t}")
+
             # ratio = tf.math.exp(tf.math.log(pb + 1e-10) - tf.math.log(op + 1e-10))
             ratio = tf.math.divide(pb, op)
-            # print(f"ratio{ratio}")
             s1 = tf.math.multiply(ratio, t)
-            # print(f"s1{s1}")
             s2 = tf.math.multiply(tf.clip_by_value(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param), t)
-            # print(f"s2{s2}")
+
             sur1.append(s1)
             sur2.append(s2)
 
         return tf.stack(sur1), tf.stack(sur2)
 
-import numpy as np
-class LamdaTransformReturns:
 
-    def __init__(
-            self,
-            gamma: float = 0.99,
-            lamda: float = 0.95,
-    ):
-
-        self.gamma = gamma
-        self.lamda = lamda
-
-    def __call__(self, rewards, dones, values):
-        g = 0
-        returns = []
-        for i in reversed(range(len(rewards))):
-            delta = rewards[i] + self.gamma * values[i + 1] * dones[i] - values[i]
-            g = delta + self.gamma * self.lamda * dones[i] * g
-            returns.append(g + values[i])
-
-        returns.reverse()
-        adv = np.array(returns, dtype=np.float32) - values[:-1]
-        adv = (adv - np.mean(adv)) / (np.std(adv) + 1e-10)
-
-        return tf.stack(adv)
 
 
