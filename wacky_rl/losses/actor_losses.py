@@ -86,17 +86,38 @@ class SoftActorLoss(BaseActorLoss):
         return self._return_loss(loss)
 
 
-class PPOActorLoss:
+class PPOActorLoss(BaseActorLoss):
 
-    def actor_loss(self, probs, actions, adv, old_probs, closs):
-        probability = probs
+    def __init__(
+            self,
+            clip_param: float,
+            entropy_factor: float = None,
+            loss_transform: str = None,
+            train_with_argmax=False
+    ):
+        self.clip_param = clip_param
+        self.train_with_argmax = train_with_argmax
+        super().__init__(entropy_factor, loss_transform)
+
+    def __call__(self, probs, old_probs, advantage, critic_loss):
+
         entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probability, tf.math.log(probability))))
-        # print(probability)
-        # print(entropy)
+        s_1, s_2 = self._calc_surrogates(probs, old_probs, advantage)
+
+        loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - critic_loss + 0.001 * entropy)
+        return loss
+
+    def _calc_surrogates(self, probs, old_probs, advantage):
+        ratios = tf.math.divide(probs, old_probs)
+        sur_1 = tf.math.multiply(ratios, advantage)
+        sur_2 = tf.math.multiply(tf.clip_by_value(ratios, 1.0 - self.clip_param, 1.0 + self.clip_param), advantage)
+        return sur_1, sur_2
+
+    def _calc_surrogates_alternative(self, probs, old_probs, advantage):
         sur1 = []
         sur2 = []
 
-        for pb, t, op in zip(probability, adv, old_probs):
+        for pb, t, op in zip(probs, advantage, old_probs):
             t = tf.constant(t)
             op = tf.constant(op)
             # print(f"t{t}")
@@ -105,45 +126,37 @@ class PPOActorLoss:
             # print(f"ratio{ratio}")
             s1 = tf.math.multiply(ratio, t)
             # print(f"s1{s1}")
-            s2 = tf.math.multiply(tf.clip_by_value(ratio, 1.0 - self.clip_pram, 1.0 + self.clip_pram), t)
+            s2 = tf.math.multiply(tf.clip_by_value(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param), t)
             # print(f"s2{s2}")
             sur1.append(s1)
             sur2.append(s2)
 
-        sr1 = tf.stack(sur1)
-        sr2 = tf.stack(sur2)
+        return tf.stack(sur1), tf.stack(sur2)
 
-        # closs = tf.reduce_mean(tf.math.square(td))
-        loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(sr1, sr2)) - closs + 0.001 * entropy)
-        # print(loss)
-        return loss
+import numpy as np
+class LamdaTransformReturns:
 
-    def preprocess1(states, actions, rewards, done, values, gamma):
+    def __init__(
+            self,
+            gamma: float = 0.99,
+            lamda: float = 0.95,
+    ):
+
+        self.gamma = gamma
+        self.lamda = lamda
+
+    def __call__(self, rewards, dones, values):
         g = 0
-        lmbda = 0.95
         returns = []
         for i in reversed(range(len(rewards))):
-            delta = rewards[i] + gamma * values[i + 1] * done[i] - values[i]
-            g = delta + gamma * lmbda * dones[i] * g
+            delta = rewards[i] + self.gamma * values[i + 1] * dones[i] - values[i]
+            g = delta + self.gamma * self.lamda * dones[i] * g
             returns.append(g + values[i])
 
         returns.reverse()
         adv = np.array(returns, dtype=np.float32) - values[:-1]
         adv = (adv - np.mean(adv)) / (np.std(adv) + 1e-10)
-        states = np.array(states, dtype=np.float32)
-        actions = np.array(actions, dtype=np.int32)
-        returns = np.array(returns, dtype=np.float32)
-        return states, actions, returns, adv
 
-    def test_reward(env):
-        total_reward = 0
-        state = env.reset()
-        done = False
-        while not done:
-            action = np.argmax(agentoo7.actor(np.array([state])).numpy())
-            next_state, reward, done, _ = env.step(action)
-            state = next_state
-            total_reward += reward
+        return tf.stack(adv)
 
-        return total_reward
 
