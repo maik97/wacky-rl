@@ -90,7 +90,7 @@ class PPOActorLoss(BaseActorLoss):
 
     def __init__(
             self,
-            clip_param: float,
+            clip_param: float = 0.2,
             entropy_factor: float = None,
             loss_transform: str = None,
             train_with_argmax=False
@@ -99,9 +99,11 @@ class PPOActorLoss(BaseActorLoss):
         self.train_with_argmax = train_with_argmax
         super().__init__(entropy_factor, loss_transform)
 
-    def __call__(self, probs, old_probs, advantage, critic_loss):
+    def __call__(self, actor, batch_input, old_probs, advantage, critic_loss):
 
-        entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probability, tf.math.log(probability))))
+        _, probs, _ = actor.predict_step(batch_input)
+
+        entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, tf.math.log(probs))))
         s_1, s_2 = self._calc_surrogates(probs, old_probs, advantage)
 
         loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - critic_loss + 0.001 * entropy)

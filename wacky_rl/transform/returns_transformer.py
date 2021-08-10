@@ -72,4 +72,4 @@ class LamdaTransformReturns:
         adv = np.array(returns, dtype=np.float32) - values[:-1]
         adv = (adv - np.mean(adv)) / (np.std(adv) + 1e-10)
 
-        return tf.stack(adv)
+        return tf.stack(adv), tf.stack(returns)
