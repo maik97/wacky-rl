@@ -48,7 +48,6 @@ class ExpectedReturnsCalculator:
         return returns
 
 
-import numpy as np
 class LamdaTransformReturns:
 
     def __init__(
@@ -63,7 +62,7 @@ class LamdaTransformReturns:
     def __call__(self, rewards, dones, values):
         g = 0
         returns = []
-        for i in reversed(range(len(rewards))):
+        for i in reversed(range(len(rewards)-1)):
             delta = rewards[i] + self.gamma * values[i + 1] * dones[i] - values[i]
             g = delta + self.gamma * self.lamda * dones[i] * g
             returns.append(g + values[i])
