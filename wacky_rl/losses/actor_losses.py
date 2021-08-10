@@ -19,6 +19,8 @@ class BaseActorLoss:
 
     def _add_entropy_loss(self, loss, act_probs, log_probs):
         if not self.entropy_factor is None:
+            print(act_probs)
+            print(log_probs)
             return loss + self.entropy_factor * tf.math.multiply(act_probs, log_probs)
         else:
             return loss
@@ -80,7 +82,7 @@ class SoftActorLoss(BaseActorLoss):
 
 
         loss = tf.squeeze(log_probs) - tf.squeeze(q)
-        loss = self._add_entropy_loss(loss, act_probs, log_probs)
+        #loss = self._add_entropy_loss(loss, act_probs, log_probs)
         return self._return_loss(loss)
 
 
