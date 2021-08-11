@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 class BaseActorLoss:
+    _forward_required = False
 
     def __init__(
             self,
@@ -41,6 +42,8 @@ class BaseActorLoss:
 
 class ActorLoss(BaseActorLoss):
 
+    _forward_required = False
+
     def __init__(
             self,
             entropy_factor: float = None,
@@ -60,6 +63,8 @@ class ActorLoss(BaseActorLoss):
 
 
 class SoftActorLoss(BaseActorLoss):
+
+    _forward_required = True
 
     def __init__(
             self,
@@ -87,6 +92,8 @@ class SoftActorLoss(BaseActorLoss):
 
 
 class PPOActorLoss(BaseActorLoss):
+
+    _forward_required = True
 
     def __init__(
             self,
