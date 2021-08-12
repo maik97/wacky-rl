@@ -1,4 +1,7 @@
 import tensorflow as tf
+import wacky_rl
+import wacky_rl.transform
+
 
 class BaseActorLoss:
     _forward_required = False
@@ -104,20 +107,32 @@ class PPOActorLoss(BaseActorLoss):
     ):
         self.clip_param = clip_param
         self.train_with_argmax = train_with_argmax
+        self.lamda_transformer = wacky_rl.transform.LamdaTransformReturns()
         super().__init__(entropy_factor, loss_transform)
 
-    def __call__(self, actor, batch_input, old_probs, advantage, critic_loss):
+    def __call__(self, actor, batch_input, old_probs, rewards, dones, critic):
 
         _, probs, _ = actor.predict_step(batch_input)
+        values = critic.predict_step(batch_input)
+
+        _, advantage = self.lamda_transformer(rewards, dones, values)
 
         entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, tf.math.log(probs))))
         s_1, s_2 = self._calc_surrogates(probs, old_probs, advantage)
 
-        loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - critic_loss + 0.001 * entropy)
+        loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy)
+        #loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - critic_loss + 0.001 * entropy)
         return loss
 
     def _calc_surrogates(self, probs, old_probs, advantage):
+        print(probs)
+        print(old_probs)
+        probs = tf.squeeze(probs)
+        old_probs = tf.squeeze(old_probs)
+        advantage = tf.squeeze(advantage)
         ratios = tf.math.divide(probs, old_probs)
+        print(ratios)
+        print(advantage)
         sur_1 = tf.math.multiply(ratios, advantage)
         sur_2 = tf.math.multiply(tf.clip_by_value(ratios, 1.0 - self.clip_param, 1.0 + self.clip_param), advantage)
         return sur_1, sur_2

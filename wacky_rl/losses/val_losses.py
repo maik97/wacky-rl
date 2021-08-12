@@ -1,4 +1,5 @@
 import tensorflow as tf
+import wacky_rl
 
 
 class SoftValueLoss:
@@ -20,3 +21,10 @@ class SoftValueLoss:
         pred = val_model.predict_step(batch_input)
 
         return tf.keras.losses.MSE(target, pred)
+
+class PPOCriticLoss:
+
+    def __init__(self):
+        self.lamda_transformer = wacky_rl.transform.LamdaTransformReturns()
+
+    def __call__(self, states, r, dones, critic):

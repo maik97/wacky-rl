@@ -60,15 +60,26 @@ class LamdaTransformReturns:
         self.lamda = lamda
 
     def __call__(self, rewards, dones, values):
+        rewards = tf.squeeze(rewards)
+        dones = tf.squeeze(dones)
+        values = tf.squeeze(values)
         g = 0
         returns = []
-        for i in reversed(range(len(rewards)-1)):
-            delta = rewards[i] + self.gamma * values[i + 1] * dones[i] - values[i]
+        for i in reversed(range(len(rewards))):
+            try:
+                delta = rewards[i] + self.gamma * values[i + 1] * dones[i] - values[i]
+            except:
+                delta = rewards[i]
             g = delta + self.gamma * self.lamda * dones[i] * g
             returns.append(g + values[i])
 
         returns.reverse()
-        adv = np.array(returns, dtype=np.float32) - values[:-1]
-        adv = (adv - np.mean(adv)) / (np.std(adv) + 1e-10)
+        returns = tf.squeeze(tf.stack(returns))
+        adv = returns - values
+        adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-10)
 
-        return tf.stack(adv), tf.stack(returns)
+        adv = tf.squeeze(tf.stack(adv))
+        returns = tf.stack(returns)
+
+        #return tf.reshape(adv, [len(adv),-1]), tf.reshape(returns, [len(returns),-1])
+        return adv, returns
