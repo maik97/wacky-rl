@@ -27,4 +27,9 @@ class PPOCriticLoss:
     def __init__(self):
         self.lamda_transformer = wacky_rl.transform.LamdaTransformReturns()
 
-    def __call__(self, states, r, dones, critic):
+    def __call__(self, batch_input, rewards, dones, critic):
+
+        values = critic.predict_step(batch_input)
+        _, returns = self.lamda_transformer(rewards, dones, values)
+
+        return tf.keras.losses.MSE(returns, values)
