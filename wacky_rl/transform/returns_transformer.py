@@ -59,17 +59,18 @@ class LamdaTransformReturns:
         self.gamma = gamma
         self.lamda = lamda
 
-    def __call__(self, rewards, dones, values):
+    def __call__(self, rewards, dones, values, next_value):
         rewards = tf.squeeze(rewards)
         dones = tf.squeeze(dones)
         values = tf.squeeze(values)
+        next_value = tf.squeeze(next_value)
         g = 0
         returns = []
         for i in reversed(range(len(rewards))):
             try:
-                delta = rewards[i] + self.gamma * values[i + 1] * dones[i] - values[i]
+                delta = rewards[i] + self.gamma * values[i+1] * dones[i] - values[i]
             except:
-                delta = rewards[i]
+                delta = rewards[i] + self.gamma * next_value * dones[i] - values[i]
             g = delta + self.gamma * self.lamda * dones[i] * g
             returns.append(g + values[i])
 

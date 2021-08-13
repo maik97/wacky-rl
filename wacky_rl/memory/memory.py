@@ -82,6 +82,9 @@ class BasicMemory:
     def remember(self, list_of_items):
         self.memory(list_of_items)
 
+    def get(self, indices):
+        return self.memory.gather_memories(indices)
+
     def recall(self):
         mem_list = self.memory.read_memories()
         self.memory.clear()
@@ -90,12 +93,40 @@ class BasicMemory:
     def sample(self, *args, **kwargs):
         return self.recall()
 
+    def clear(self):
+        self.memory.clear()
+        print(self.memory._memory)
+
 
 class ReplayBuffer(BasicMemory):
 
     def __init__(self, maxlen=10_000):
         super().__init__()
         self.memory = TensorMemory(maxlen)
+
+    def sample_mini_batch(self,mini_batch_size, num_mini_batches=None, clear_memory=False):
+        if not num_mini_batches is None:
+            num_mini_batches = min(num_mini_batches, int(self.memory.length/mini_batch_size))
+            num_mini_batches = max(num_mini_batches, 1)
+        else:
+            num_mini_batches = max(int(self.memory.length/mini_batch_size), 1)
+
+        mini_batches = []
+        for _ in range(num_mini_batches):
+            if self.memory.length < mini_batch_size:
+                mini_batches.append(
+                self.memory.gather_memories(np.arange(0, self.memory.length))
+            )
+
+            else:
+                start_index = np.random.randint(0, self.memory.length - mini_batch_size)
+                mini_batches.append(
+                    self.memory.gather_memories(np.arange(start_index, start_index+mini_batch_size))
+                )
+
+        if clear_memory:
+            self.memory.clear()
+        return mini_batches
 
     def sample(self, batch_size):
         batch_size = min(batch_size, self.memory.length)

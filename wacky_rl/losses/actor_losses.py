@@ -109,20 +109,16 @@ class PPOActorLoss(BaseActorLoss):
         self.lamda_transformer = wacky_rl.transform.LamdaTransformReturns()
         super().__init__(entropy_factor, loss_transform)
 
-    def __call__(self, actor, batch_input, old_probs, rewards, dones, critic):
-
-        c_loss = critic.train_step(batch_input, rewards, dones, critic)
+    def __call__(self, actor, batch_input, old_probs, advantage, critic_loss):
 
         _, probs, _ = actor.predict_step(batch_input)
-        values = critic.predict_step(batch_input)
 
-        advantage, _ = self.lamda_transformer(rewards, dones, values)
 
         entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, tf.math.log(probs))))
         s_1, s_2 = self._calc_surrogates(probs, old_probs, advantage)
 
         #loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy)
-        loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - c_loss + 0.001 * entropy)
+        loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - critic_loss + 0.001 * entropy)
         return loss
 
     def _calc_surrogates(self, probs, old_probs, advantage):

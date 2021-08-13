@@ -45,7 +45,7 @@ class WackyModel(tf.keras.Model):
             model_layer: (list, layers.Layer) = None,
             model_outputs: (list, layers.Layer) = None,
             optimizer: optimizers.Optimizer = None,
-            learning_rate: float = None,  # not used when model_layer provided
+            learning_rate: float = None,
             loss = None,
             loss_alpha: float = 1.0,
             out_function = None,
@@ -148,7 +148,13 @@ class WackyModel(tf.keras.Model):
 
         self._start_wacky_recording()
 
-        loss = self.loss_alpha * self._wacky_loss(*args, **kwargs)
+        loss_returns = self._wacky_loss(*args, **kwargs)
+
+        if isinstance(loss_returns, list):
+            loss = self.loss_alpha * loss_returns[0]
+            loss_returns.pop(0)
+        else:
+            loss = self.loss_alpha * loss_returns
 
         self._wacky_tape._pop_tape()
 
@@ -157,7 +163,10 @@ class WackyModel(tf.keras.Model):
 
         self._wacky_tape._tape = None
 
-        return loss
+        if isinstance(loss_returns, list):
+            return [loss] + loss_returns
+        else:
+            return loss
 
     def predict_step(self, data, mask=None, *args, **kwargs):
         return self.call(data, training=False, mask=mask, *args, **kwargs)
