@@ -70,7 +70,13 @@ class ContinActorAction:
 
         act_probs_dist = tfp.distributions.Normal(mu, sigma)
 
-        actions = act_probs_dist.sample()
+        if act_argmax:
+            actions = act_probs_dist.sample()
+            #actions = act_probs_dist.mean()
+        else:
+            actions = act_probs_dist.sample()
+
+        #actions = tf.clip_by_value(actions, 0.0, 1.0)
 
         if self.reparam:
             actions += tf.random.normal(shape=tf.shape(actions), mean=0.0, stddev=0.1)
@@ -78,6 +84,7 @@ class ContinActorAction:
         action = tf.math.tanh(actions)
         #action = tf.squeeze(action)
         act_probs = tf.squeeze(act_probs_dist.prob(actions))
+        #act_probs = tf.clip_by_value(act_probs, 0, 1)
         log_probs = tf.squeeze(act_probs_dist.log_prob(actions))
         log_probs = log_probs - tf.math.log(1 - tf.math.pow(action, 2) + self.rp)
 

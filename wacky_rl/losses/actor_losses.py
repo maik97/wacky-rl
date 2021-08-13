@@ -99,25 +99,33 @@ class PPOActorLoss(BaseActorLoss):
 
     def __init__(
             self,
+            is_discrete: bool = True,
             clip_param: float = 0.2,
             entropy_factor: float = None,
             loss_transform: str = None,
             train_with_argmax=False
     ):
+        self.is_discrete = is_discrete
         self.clip_param = clip_param
         self.train_with_argmax = train_with_argmax
         self.lamda_transformer = wacky_rl.transform.LamdaTransformReturns()
         super().__init__(entropy_factor, loss_transform)
 
-    def __call__(self, actor, batch_input, old_probs, advantage, critic_loss):
+    def __call__(self, actor, batch_input, old_probs, advantage, critic_loss=None):
 
-        _, probs, _ = actor.predict_step(batch_input, act_argmax=True)
+        if self.is_discrete:
+            _, probs, log_probs = actor.predict_step(batch_input, act_argmax=True)
+        else:
+            _, probs, log_probs = actor.predict_step(batch_input, act_argmax=False)
 
-        entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, tf.math.log(probs))))
+
+        entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, log_probs)))
         s_1, s_2 = self._calc_surrogates_alternative(probs, old_probs, advantage)
 
-        #loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy)
-        loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - critic_loss + 0.001 * entropy)
+        if critic_loss is None:
+            loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy)
+        else:
+            loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - critic_loss + 0.001 * entropy)
         return loss
 
     def _calc_surrogates(self, probs, old_probs, advantage):
