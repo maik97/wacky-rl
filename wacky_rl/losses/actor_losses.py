@@ -111,11 +111,10 @@ class PPOActorLoss(BaseActorLoss):
 
     def __call__(self, actor, batch_input, old_probs, advantage, critic_loss):
 
-        _, probs, _ = actor.predict_step(batch_input)
-
+        _, probs, _ = actor.predict_step(batch_input, act_argmax=True)
 
         entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, tf.math.log(probs))))
-        s_1, s_2 = self._calc_surrogates(probs, old_probs, advantage)
+        s_1, s_2 = self._calc_surrogates_alternative(probs, old_probs, advantage)
 
         #loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy)
         loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - critic_loss + 0.001 * entropy)
@@ -135,6 +134,10 @@ class PPOActorLoss(BaseActorLoss):
     def _calc_surrogates_alternative(self, probs, old_probs, advantage):
         sur1 = []
         sur2 = []
+
+        probs = tf.squeeze(probs)
+        old_probs = tf.squeeze(old_probs)
+        advantage = tf.squeeze(advantage)
 
         for pb, t, op in zip(probs, advantage, old_probs):
             t = tf.constant(t)

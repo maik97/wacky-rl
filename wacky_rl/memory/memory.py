@@ -67,10 +67,6 @@ class TensorMemory:
     def read_memories(self):
         return [mem.stack() for mem in self._memory]
 
-    def clear(self):
-        self._memory = None
-        self._pointer = 0
-
 
 class BasicMemory:
 
@@ -87,15 +83,15 @@ class BasicMemory:
 
     def recall(self):
         mem_list = self.memory.read_memories()
-        self.memory.clear()
+        self.clear()
         return mem_list
 
     def sample(self, *args, **kwargs):
         return self.recall()
 
     def clear(self):
-        self.memory.clear()
-        print(self.memory._memory)
+        #del self.memory
+        self.memory = TensorMemory()
 
 
 class ReplayBuffer(BasicMemory):
@@ -123,9 +119,9 @@ class ReplayBuffer(BasicMemory):
                 mini_batches.append(
                     self.memory.gather_memories(np.arange(start_index, start_index+mini_batch_size))
                 )
-
+        #print(self.memory.length)
         if clear_memory:
-            self.memory.clear()
+            self.clear()
         return mini_batches
 
     def sample(self, batch_size):
@@ -136,7 +132,7 @@ class ReplayBuffer(BasicMemory):
     def recall(self, clear_after_read=True):
         mem_list = self.memory.read_memories()
         if clear_after_read:
-            self.memory.clear()
+            self.clear()
         return mem_list
 
 

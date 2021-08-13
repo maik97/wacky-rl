@@ -47,13 +47,14 @@ class DiscreteActionLayer(BaseActionLayer):
 
     def call(self, inputs, act_argmax=False):
         #print(inputs)
-
+        print(inputs)
         #act_argmax = True
         if act_argmax:
             action = tf.math.argmax(inputs, axis=-1)
         else:
             action = tf.squeeze(tf.random.categorical(inputs, num_samples=1), axis=1)
-
+        print(action)
+        exit()
         act_prob = tf.gather_nd(tf.nn.softmax(inputs), tf.stack([np.arange(len(action)), action], axis=1))
         log_prob = tf.math.log(act_prob)
 

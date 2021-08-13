@@ -103,6 +103,8 @@ class WackyModel(tf.keras.Model):
         # Gradient Tape:
         self._wacky_tape = tf.GradientTape(persistent=True)
 
+
+
     def _wacky_forward(self, x):
         #print(x)
         for l in self._wacky_layer: x = l(x)
@@ -126,7 +128,7 @@ class WackyModel(tf.keras.Model):
         #self._wacky_tape._ensure_recording()
 
 
-    def call(self, inputs, training=True, mask=None, *args, **kwargs):
+    def call(self, inputs, training=False, mask=None, *args, **kwargs):
 
         # Start Tape Recording if necessary:
         if not self._wacky_tape._recording and training:

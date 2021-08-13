@@ -25,14 +25,15 @@ class SoftValueLoss:
 class PPOCriticLoss:
 
     def __init__(self):
-        self.lamda_transformer = wacky_rl.transform.LamdaTransformReturns()
+        pass
 
     def __call__(self, critic, batch_input, returns):
 
-        print(returns)
+        #print()
 
         values = critic.predict_step(batch_input)
-        print(values)
+        #print(tf.keras.losses.MSE(tf.reshape(returns, [-1,1]), values))
+        #exit()
 
 
-        return tf.keras.losses.MSE(returns, values)
+        return tf.reduce_mean(tf.keras.losses.MSE(tf.reshape(returns, [-1,1]), values))
