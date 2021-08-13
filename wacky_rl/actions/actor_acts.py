@@ -20,8 +20,17 @@ class DiscreteActorActionAlternative:
 
 class DiscreteActorAction:
 
-    def __init__(self):
-        pass
+    def __init__(
+            self,
+            return_act_prob: bool = True,
+            return_log_prob: bool = True,
+            return_action_as_inputs: bool = False,
+            return_dist=False,
+    ):
+        self.return_act_prob = return_act_prob
+        self.return_log_prob = return_log_prob
+        self.return_action_as_inputs = return_action_as_inputs
+        self.return_dist = return_dist
 
     def __call__(self, x, act_argmax=False):
 
@@ -33,10 +42,40 @@ class DiscreteActorAction:
         else:
             action = tf.squeeze(tf.random.categorical(x, num_samples=1), axis=1)
 
-        act_prob = tf.gather_nd(tf.nn.softmax(x), tf.stack([np.arange(len(action)), action], axis=1))
-        log_prob = tf.math.log(act_prob)
+        out_list = [action]
 
-        return [action, act_prob, log_prob]
+        if self.return_act_prob:
+            act_prob = self.calc_act_prob(x, action)
+            out_list.append(act_prob)
+
+        if self.return_log_prob:
+            if not self.return_act_prob:
+                act_prob = self.calc_act_prob(x, action)
+            log_prob = self.calc_log_prob(act_prob)
+            out_list.append(log_prob)
+
+        if self.return_action_as_inputs:
+            action_as_input = self.calc_action_as_input(action, len(x))
+            out_list.append(action_as_input)
+
+        if self.return_dist:
+            dist = tf.nn.softmax(x)
+            out_list.append(dist)
+
+        if len(out_list) > 1:
+            return out_list
+        else:
+            return out_list[0]
+
+    def calc_act_prob(self, x, action):
+        return tf.gather_nd(tf.nn.softmax(x), tf.stack([np.arange(len(action)), action], axis=1))
+
+    def calc_log_prob(self, act_prob):
+        return tf.math.log(act_prob)
+
+    def calc_action_as_input(self, action, n_actions):
+        tf.one_hot(action, n_actions)
+
 
 class SoftDiscreteActorAction(DiscreteActorAction):
 
@@ -57,10 +96,22 @@ class ContinActorAction:
             reparam: bool = False,
             rp=1e-6,
             log_prob_transform: str = 'sum',
+
+            transform_action: bool = True,
+            return_act_prob: bool = True,
+            return_log_prob: bool = True,
+            return_action_as_inputs: bool = False,
+            return_dist = False,
     ):
         self.reparam = reparam
         self.rp =rp
         self.log_prob_transform = log_prob_transform
+
+        self.transform_action = transform_action
+        self.return_act_prob = return_act_prob
+        self.return_log_prob = return_log_prob
+        self.return_action_as_inputs = return_action_as_inputs
+        self.return_dist = return_dist
 
     def __call__(self, x, act_argmax=False):
 
@@ -81,21 +132,46 @@ class ContinActorAction:
         if self.reparam:
             actions += tf.random.normal(shape=tf.shape(actions), mean=0.0, stddev=0.1)
 
-        action = tf.math.tanh(actions)
-        #action = tf.squeeze(action)
-        act_probs = tf.squeeze(act_probs_dist.prob(actions))
-        #act_probs = tf.clip_by_value(act_probs, 0, 1)
+        tanh_actions = tf.math.tanh(actions)
+
+        if self.transform_action:
+            out_list = [tanh_actions]
+        else:
+            out_list = [actions]
+
+        if self.return_act_prob:
+            act_probs = self.calc_act_prob(act_probs_dist, actions)
+            out_list.append(act_probs)
+
+        if self.return_log_prob:
+            log_probs = self.calc_log_prob(act_probs_dist, actions, tanh_actions)
+            out_list.append(log_probs)
+
+        if self.return_action_as_inputs:
+            action_as_input = self.calc_action_as_input(out_list[0])
+            out_list.append(action_as_input)
+
+        if len(out_list) > 1:
+            return out_list
+        else:
+            return out_list[0]
+
+    def calc_act_prob(self, act_probs_dist, actions):
+        return tf.squeeze(act_probs_dist.prob(actions))
+
+    def calc_log_prob(self, act_probs_dist, actions, tanh_actions=None):
         log_probs = tf.squeeze(act_probs_dist.log_prob(actions))
-        log_probs = log_probs - tf.math.log(1 - tf.math.pow(action, 2) + self.rp)
+        if not tanh_actions is None:
+            log_probs = log_probs - tf.math.log(1 - tf.math.pow(tanh_actions, 2) + self.rp)
 
         if self.log_prob_transform == 'sum':
-            return action, act_probs, tf.math.reduce_sum(log_probs)
-
+            return tf.math.reduce_sum(log_probs)
         if self.log_prob_transform == 'mean':
-            return action, act_probs, tf.math.reduce_sum(log_probs)
+            return tf.math.reduce_sum(log_probs)
+        return log_probs
 
-        return [action, act_probs, log_probs]
-
+    def calc_action_as_input(self, actions):
+        return tf.reshape(actions, [-1, tf.shape(actions)[-1]])
 
 class SoftContinActorAction(ContinActorAction):
 

@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 import wacky_rl
 import wacky_rl.transform
@@ -108,15 +109,20 @@ class PPOActorLoss(BaseActorLoss):
         self.is_discrete = is_discrete
         self.clip_param = clip_param
         self.train_with_argmax = train_with_argmax
-        self.lamda_transformer = wacky_rl.transform.LamdaTransformReturns()
         super().__init__(entropy_factor, loss_transform)
 
-    def __call__(self, actor, batch_input, old_probs, advantage, critic_loss=None):
+    def __call__(self, actor, actions, batch_input, old_probs, advantage, critic_loss=None):
 
         if self.is_discrete:
-            _, probs, log_probs = actor.predict_step(batch_input, act_argmax=True)
+            _, _, _, dist = actor.predict_step(batch_input, act_argmax=True)
+            probs = tf.gather_nd(dist, tf.stack([np.arange(len(actions)), actions], axis=1))
+            log_probs = tf.math.log(probs)
+
         else:
-            _, probs, log_probs = actor.predict_step(batch_input, act_argmax=False)
+            _, _, _, dist = actor.predict_step(batch_input, act_argmax=False)
+            probs = tf.squeeze(dist.prob(actions))
+            log_probs = tf.squeeze(dist.log_prob(actions))
+            log_probs = log_probs - tf.math.log(1 - tf.math.pow(tf.math.tanh(actions), 2) + 1e-6)
 
 
         entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, log_probs)))
