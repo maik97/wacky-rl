@@ -114,15 +114,16 @@ class PPOActorLoss(BaseActorLoss):
     def __call__(self, actor, actions, batch_input, old_probs, advantage, critic_loss=None):
 
         if self.is_discrete:
-            _, _, _, dist = actor.predict_step(batch_input, act_argmax=True)
-            probs = tf.gather_nd(dist, tf.stack([np.arange(len(actions)), actions], axis=1))
+            _, _, _, dist = actor.predict_step(batch_input, act_argmax=False)
+            indices = tf.cast(tf.stack([np.arange(len(actions)), tf.squeeze(actions)], axis=1), dtype=tf.int32)
+            probs = tf.gather_nd(dist, indices)
             log_probs = tf.math.log(probs)
 
         else:
             _, _, _, dist = actor.predict_step(batch_input, act_argmax=False)
             probs = tf.squeeze(dist.prob(actions))
             log_probs = tf.squeeze(dist.log_prob(actions))
-            log_probs = log_probs - tf.math.log(1 - tf.math.pow(tf.math.tanh(actions), 2) + 1e-6)
+            #log_probs = log_probs - tf.math.log(1 - tf.math.pow(tf.math.tanh(actions), 2) + 1e-6)
 
 
         entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, log_probs)))

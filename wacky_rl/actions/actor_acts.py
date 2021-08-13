@@ -89,6 +89,24 @@ class SoftDiscreteActorAction(DiscreteActorAction):
         return [action, act_prob, log_prob, action_as_input]
 
 
+class ContinActionDistribution:
+
+    def __init__(
+            self,
+            min_log_sigma=-20,
+            max_log_sigma=0,
+    ):
+        self.min_log_sigma = min_log_sigma
+        self.max_log_sigma = max_log_sigma
+
+    def __call__(self, mu, log_sigma):
+        mu = tf.squeeze(mu)
+        log_sigma = tf.squeeze(log_sigma)
+        log_sigma = self.min_log_sigma + 0.5 * (self.max_log_sigma - self.max_log_sigma) * (log_sigma + 1)
+        sigma = tf.exp(log_sigma)
+        return tfp.distributions.Normal(mu, sigma)
+
+
 class ContinActorAction:
 
     def __init__(
@@ -113,17 +131,19 @@ class ContinActorAction:
         self.return_action_as_inputs = return_action_as_inputs
         self.return_dist = return_dist
 
+        self.calc_dist = ContinActionDistribution()
+
     def __call__(self, x, act_argmax=False):
 
         mu, sigma = x
-        mu = tf.squeeze(mu)
-        sigma = tf.clip_by_value(tf.squeeze(sigma), self.rp, 1)
+        #mu = tf.squeeze(mu)
+        #sigma = tf.clip_by_value(tf.squeeze(sigma), self.rp, 1)
 
-        act_probs_dist = tfp.distributions.Normal(mu, sigma)
+        #act_probs_dist = tfp.distributions.Normal(mu, sigma)
+        act_probs_dist = self.calc_dist(mu, sigma)
 
         if act_argmax:
-            actions = act_probs_dist.sample()
-            #actions = act_probs_dist.mean()
+            actions = act_probs_dist.mean()
         else:
             actions = act_probs_dist.sample()
 
@@ -132,34 +152,47 @@ class ContinActorAction:
         if self.reparam:
             actions += tf.random.normal(shape=tf.shape(actions), mean=0.0, stddev=0.1)
 
+        '''
         tanh_actions = tf.math.tanh(actions)
 
         if self.transform_action:
             out_list = [tanh_actions]
         else:
             out_list = [actions]
+        '''
+        out_list = [actions]
 
         if self.return_act_prob:
             act_probs = self.calc_act_prob(act_probs_dist, actions)
             out_list.append(act_probs)
 
         if self.return_log_prob:
-            log_probs = self.calc_log_prob(act_probs_dist, actions, tanh_actions)
+            log_probs = self.calc_log_prob(act_probs_dist, actions)
+            #log_probs = self.calc_log_prob(act_probs_dist, actions, tanh_actions)
             out_list.append(log_probs)
 
         if self.return_action_as_inputs:
             action_as_input = self.calc_action_as_input(out_list[0])
             out_list.append(action_as_input)
 
+        if self.return_dist:
+            out_list.append(act_probs_dist)
+
+        #print(len(out_list))
+
         if len(out_list) > 1:
             return out_list
         else:
             return out_list[0]
 
+
     def calc_act_prob(self, act_probs_dist, actions):
         return tf.squeeze(act_probs_dist.prob(actions))
 
-    def calc_log_prob(self, act_probs_dist, actions, tanh_actions=None):
+    def calc_log_prob(self, act_probs_dist, actions):
+        return tf.squeeze(act_probs_dist.log_prob(actions))
+
+    def calc_log_prob_old(self, act_probs_dist, actions, tanh_actions=None):
         log_probs = tf.squeeze(act_probs_dist.log_prob(actions))
         if not tanh_actions is None:
             log_probs = log_probs - tf.math.log(1 - tf.math.pow(tanh_actions, 2) + self.rp)
