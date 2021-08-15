@@ -150,13 +150,17 @@ class WackyModel(tf.keras.Model):
 
         self._start_wacky_recording()
 
-        loss_returns = self._wacky_loss(*args, **kwargs)
+        losses_returns = self._wacky_loss(*args, **kwargs)
 
-        if isinstance(loss_returns, list):
-            loss = self.loss_alpha * loss_returns[0]
-            loss_returns.pop(0)
+        if isinstance(losses_returns, list):
+            losses = losses_returns[0]
+            losses_returns.pop(0)
         else:
-            loss = self.loss_alpha * loss_returns
+            losses = losses_returns
+
+        #losses = self.loss_alpha * losses
+
+        loss = self.loss_alpha  * tf.nn.compute_average_loss(losses)
 
         self._wacky_tape._pop_tape()
 
@@ -165,8 +169,8 @@ class WackyModel(tf.keras.Model):
 
         self._wacky_tape._tape = None
 
-        if isinstance(loss_returns, list):
-            return [loss] + loss_returns
+        if isinstance(losses_returns, list):
+            return [loss] + losses_returns
         else:
             return loss
 

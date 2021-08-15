@@ -125,15 +125,17 @@ class PPOActorLoss(BaseActorLoss):
             log_probs = tf.squeeze(dist.log_prob(actions))
             #log_probs = log_probs - tf.math.log(1 - tf.math.pow(tf.math.tanh(actions), 2) + 1e-6)
 
-        entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, log_probs)))
+        #entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, log_probs)))
+        entropy = tf.math.negative(tf.math.multiply(probs, log_probs))
         #print(entropy)
         s_1, s_2 = self._calc_surrogates_alternative(probs, old_probs, advantage)
 
-        if critic_loss is None:
-            loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy)
-        else:
-            loss = tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) - critic_loss + 0.001 * entropy)
-        return loss
+        losses = tf.squeeze(tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy))
+
+        if not critic_loss is None:
+            losses = losses - critic_loss
+
+        return losses
 
     def _calc_surrogates(self, probs, old_probs, advantage):
 
