@@ -3,12 +3,12 @@ import tensorflow as tf
 
 class TensorMemory:
 
-    _pointer = 0
-    _lenght = 0
-
-    def __init__(self, maxlen=None):
+    def __init__(self, maxlen=None, clear_after_read=True):
+        self._pointer = 0
+        self._lenght = 0
         self._memory = None
         self.maxlen = maxlen
+        self.clear_after_read = clear_after_read
 
     def __call__(self, list_of_items):
 
@@ -19,7 +19,8 @@ class TensorMemory:
                         size=0,
                         dtype=tf.float32,
                         dynamic_size=True,
-                        name='items_at_{}'.format(i)
+                        #name='items_at_{}'.format(i),
+                        #clear_after_read=self.clear_after_read
                     ) for i in range(len(list_of_items))
                 ]
             else:
@@ -27,7 +28,8 @@ class TensorMemory:
                     tf.TensorArray(
                         size=self.maxlen,
                         dtype=tf.float32,
-                        name='items_at_{}'.format(i)
+                        #name='items_at_{}'.format(i),
+                        #clear_after_read=self.clear_after_read
                     ) for i in range(len(list_of_items))
                 ]
 
@@ -67,13 +69,19 @@ class TensorMemory:
     def read_memories(self):
         return [mem.stack() for mem in self._memory]
 
+    def delete_tensor_arrays(self):
+        [mem.close() for mem in self._memory]
+        del self._memory
+        self._memory = None
+        self._pointer = 0
+        self._lenght = 0
+
 
 class BasicMemory:
 
-    memory = TensorMemory()
 
     def __init__(self):
-        pass
+        self.memory = TensorMemory()
 
     def remember(self, list_of_items):
         self.memory(list_of_items)
@@ -90,8 +98,7 @@ class BasicMemory:
         return self.recall()
 
     def clear(self):
-        #del self.memory
-        self.memory = TensorMemory()
+        self.memory.delete_tensor_arrays()
 
 
 class ReplayBuffer(BasicMemory):
