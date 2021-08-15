@@ -125,8 +125,8 @@ class PPOActorLoss(BaseActorLoss):
             log_probs = tf.squeeze(dist.log_prob(actions))
             #log_probs = log_probs - tf.math.log(1 - tf.math.pow(tf.math.tanh(actions), 2) + 1e-6)
 
-
         entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, log_probs)))
+        #print(entropy)
         s_1, s_2 = self._calc_surrogates_alternative(probs, old_probs, advantage)
 
         if critic_loss is None:

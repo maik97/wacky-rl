@@ -136,11 +136,14 @@ class ContinActorAction:
     def __call__(self, x, act_argmax=False):
 
         mu, sigma = x
-        #mu = tf.squeeze(mu)
+        mu = tf.squeeze(mu)
         #sigma = tf.clip_by_value(tf.squeeze(sigma), self.rp, 1)
 
         #act_probs_dist = tfp.distributions.Normal(mu, sigma)
-        act_probs_dist = self.calc_dist(mu, sigma)
+        #act_probs_dist = self.calc_dist(mu, sigma)
+        sigma = tf.squeeze(sigma)
+
+        act_probs_dist = tfp.distributions.Normal(mu, sigma)
 
         if act_argmax:
             actions = act_probs_dist.mean()
@@ -152,14 +155,14 @@ class ContinActorAction:
         if self.reparam:
             actions += tf.random.normal(shape=tf.shape(actions), mean=0.0, stddev=0.1)
 
-        '''
-        tanh_actions = tf.math.tanh(actions)
 
-        if self.transform_action:
-            out_list = [tanh_actions]
-        else:
-            out_list = [actions]
-        '''
+        #tanh_actions = tf.math.tanh(actions)
+
+        #if self.transform_action:
+            #out_list = [tanh_actions]
+        #else:
+            #out_list = [actions]
+
         out_list = [actions]
 
         if self.return_act_prob:
@@ -168,7 +171,7 @@ class ContinActorAction:
 
         if self.return_log_prob:
             log_probs = self.calc_log_prob(act_probs_dist, actions)
-            #log_probs = self.calc_log_prob(act_probs_dist, actions, tanh_actions)
+            #log_probs = self.calc_log_prob_old(act_probs_dist, actions, tanh_actions)
             out_list.append(log_probs)
 
         if self.return_action_as_inputs:
