@@ -126,11 +126,14 @@ class PPOActorLoss(BaseActorLoss):
             #log_probs = log_probs - tf.math.log(1 - tf.math.pow(tf.math.tanh(actions), 2) + 1e-6)
 
         #entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, log_probs)))
-        entropy = tf.math.negative(tf.math.multiply(probs, log_probs))
+        #entropy = tf.math.negative(tf.math.multiply(probs, log_probs))
         #print(entropy)
         s_1, s_2 = self._calc_surrogates_alternative(probs, old_probs, advantage)
 
-        losses = tf.squeeze(tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy))
+        #losses = tf.squeeze(tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy))
+        losses = tf.squeeze(tf.math.negative(tf.math.minimum(s_1, s_2)))
+
+        losses = self._add_entropy_loss(losses, probs, log_probs)
 
         if not critic_loss is None:
             losses = losses - critic_loss
@@ -142,10 +145,10 @@ class PPOActorLoss(BaseActorLoss):
         probs = tf.squeeze(probs)
         old_probs = tf.squeeze(old_probs)
         advantage = tf.squeeze(advantage)
-        ratios = tf.math.divide(probs, old_probs)
+        ratios = tf.math.divide_no_nan(probs, old_probs)
 
-        sur_1 = tf.math.multiply(ratios, advantage)
-        sur_2 = tf.math.multiply(tf.clip_by_value(ratios, 1.0 - self.clip_param, 1.0 + self.clip_param), advantage)
+        sur_1 = tf.math.multiply_no_nan(ratios, advantage)
+        sur_2 = tf.math.multiply_no_nan(tf.clip_by_value(ratios, 1.0 - self.clip_param, 1.0 + self.clip_param), advantage)
         return sur_1, sur_2
 
     def _calc_surrogates_alternative(self, probs, old_probs, advantage):
