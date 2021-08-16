@@ -84,3 +84,45 @@ class LamdaTransformReturns:
 
         #return tf.reshape(adv, [len(adv),-1]), tf.reshape(returns, [len(returns),-1])
         return adv, returns
+
+class GAE:
+
+    def __init__(
+            self,
+            gamma: float = 0.99,
+            lamda: float = 0.95,
+    ):
+
+        self.gamma = gamma
+        self.lamda = lamda
+
+    def __call__(self, rewards, dones, values, next_value):
+
+        rewards = tf.squeeze(rewards)
+        dones = tf.squeeze(dones)
+        values = tf.squeeze(values)
+        next_value = tf.squeeze(next_value)
+
+        returns = tf.TensorArray(size=len(rewards), dtype=tf.float32)
+        advantages = tf.TensorArray(size=len(rewards), dtype=tf.float32)
+
+        g = 0.0
+        for i in reversed(range(len(rewards))):
+            try:
+                delta = rewards[i] + self.gamma * values[i+1] * dones[i] - values[i]
+            except:
+                delta = rewards[i] + self.gamma * next_value * dones[i] - values[i]
+            g = delta + self.gamma * self.lamda * dones[i] * g
+            ret =  g + values[i]
+            returns = returns.write(i,ret)
+            advantages = advantages.write(i, ret - values[i])
+
+        adv = advantages.stack()
+        adv_mean = tf.reduce_mean(adv)
+        adv_std = (tf.math.reduce_std(adv) + 1e-10)
+
+        for i in range(len(adv)):
+            stand_adv = (adv[i] - adv_mean) / adv_std
+            advantages = advantages.write(i, stand_adv)
+
+        return advantages, returns

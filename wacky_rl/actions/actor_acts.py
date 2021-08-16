@@ -136,14 +136,15 @@ class ContinActorAction:
     def __call__(self, x, act_argmax=False):
 
         mu, sigma = x
-        mu = tf.squeeze(mu)
+        #mu = tf.squeeze(mu)
         #sigma = tf.clip_by_value(tf.squeeze(sigma), self.rp, 1)
 
         #act_probs_dist = tfp.distributions.Normal(mu, sigma)
         #act_probs_dist = self.calc_dist(mu, sigma)
-        sigma = tf.squeeze(sigma)
+        #sigma = tf.squeeze(sigma)
 
-        act_probs_dist = tfp.distributions.Normal(mu, sigma)
+        #act_probs_dist = tfp.distributions.Normal(mu, sigma)
+        act_probs_dist = ContinActionDistribution(mu, sigma)
 
         if act_argmax:
             actions = act_probs_dist.mean()

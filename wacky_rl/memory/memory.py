@@ -13,25 +13,16 @@ class TensorMemory:
     def __call__(self, list_of_items):
 
         if self._memory is None:
-            if self.maxlen is None:
-                self._memory = [
-                    tf.TensorArray(
-                        size=0,
-                        dtype=tf.float32,
-                        dynamic_size=True,
-                        #name='items_at_{}'.format(i),
-                        #clear_after_read=self.clear_after_read
-                    ) for i in range(len(list_of_items))
-                ]
-            else:
-                self._memory = [
-                    tf.TensorArray(
-                        size=self.maxlen,
-                        dtype=tf.float32,
-                        #name='items_at_{}'.format(i),
-                        #clear_after_read=self.clear_after_read
-                    ) for i in range(len(list_of_items))
-                ]
+
+            self._memory = [
+                tf.TensorArray(
+                    size=0,
+                    dtype=tf.float32,
+                    dynamic_size=True,
+                    #name='items_at_{}'.format(i),
+                    #clear_after_read=self.clear_after_read
+                ) for i in range(len(list_of_items))
+            ]
 
         for i in range(len(list_of_items)):
             self._memory[i] = self._add_item_to_tensor_array(self._memory[i], list_of_items[i])
@@ -40,6 +31,8 @@ class TensorMemory:
         self._lenght += 1
         if not self.maxlen is None:
             self._lenght = min(self._lenght, self.maxlen)
+            if self._pointer >= self.maxlen:
+                self._pointer = 0
 
     @property
     def length(self):
@@ -57,9 +50,6 @@ class TensorMemory:
         return self._memory
 
     def _add_item_to_tensor_array(self, tensor_array, item):
-        if not self.maxlen is None:
-            if self._pointer >= self.maxlen:
-                self._pointer = 0
         tensor_array = tensor_array.write(self._pointer, tf.cast(item, dtype=tf.float32))
         return tensor_array
 
@@ -68,6 +58,12 @@ class TensorMemory:
 
     def read_memories(self):
         return [mem.stack() for mem in self._memory]
+
+    def read_specific_memories(self, index):
+        return self._memory[index].stack()
+
+    def add_tensor_array(self, tensor_array):
+        self._memory.append(tensor_array)
 
     def delete_tensor_arrays(self):
         [mem.close() for mem in self._memory]
