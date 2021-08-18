@@ -117,12 +117,12 @@ class GAE:
             returns = returns.write(i,ret)
             advantages = advantages.write(i, ret - values[i])
 
-        adv = advantages.stack()
-        adv_mean = tf.reduce_mean(adv)
-        adv_std = (tf.math.reduce_std(adv) + 1e-10)
+        #adv = advantages.stack()
+        #adv_mean = tf.reduce_mean(adv)
+        #adv_std = (tf.math.reduce_std(adv) + 1e-10)
 
-        for i in range(len(adv)):
-            stand_adv = (adv[i] - adv_mean) / adv_std
-            advantages = advantages.write(i, stand_adv)
+        #for i in range(len(adv)):
+        #    stand_adv = (adv[i] - adv_mean) / adv_std
+        #    advantages = advantages.write(i, stand_adv)
 
         return advantages, returns

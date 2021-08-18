@@ -51,12 +51,16 @@ class WackyModel(tf.keras.Model):
             out_function = None,
             model_name: str = 'UnnamedWackyModel',
             model_index: int = None,
+            grad_clip=False,
+            use_wacky_backprob =True,
     ):
 
         super().__init__()
 
         self.model_name = model_name
         self.model_index = model_index
+        self.grad_clip = grad_clip
+        self.use_wacky_backprob = use_wacky_backprob
 
         # Model Layer:
         if model_layer is None:
@@ -146,10 +150,8 @@ class WackyModel(tf.keras.Model):
 
         return x
 
-    def train_step(self, *args, **kwargs):
-
+    def _wacky_backprob(self, *args, **kwargs):
         self._start_wacky_recording()
-
         losses_returns = self._wacky_loss(*args, **kwargs)
 
         if isinstance(losses_returns, list):
@@ -158,13 +160,37 @@ class WackyModel(tf.keras.Model):
         else:
             losses = losses_returns
 
-        #losses = self.loss_alpha * losses
-
-        loss = self.loss_alpha  * tf.nn.compute_average_loss(losses)
+        loss = self.loss_alpha * losses
+        # loss = self.loss_alpha  * tf.nn.compute_average_loss(losses)
 
         self._wacky_tape._pop_tape()
+        return loss, losses_returns, self._wacky_tape
 
-        grads = self._wacky_tape.gradient(loss, self.trainable_variables)
+    def _normal_backprob(self, *args, **kwargs):
+
+        with tf.GradientTape() as tape:
+            losses_returns = self._wacky_loss(*args, **kwargs)
+
+            if isinstance(losses_returns, list):
+                losses = losses_returns[0]
+                losses_returns.pop(0)
+            else:
+                losses = losses_returns
+
+            loss = self.loss_alpha * losses
+        return loss, losses_returns, tape
+
+
+    def train_step(self, *args, **kwargs):
+
+        if self.use_wacky_backprob:
+            loss, losses_returns, tape = self._wacky_backprob(*args, **kwargs)
+        else:
+            loss, losses_returns, tape = self._normal_backprob(*args, **kwargs)
+
+        grads = tape.gradient(loss, self.trainable_variables)
+        if self.grad_clip:
+            grads = [tf.clip_by_norm(g, 0.5) for g in grads]
         self._wacky_optimizer.apply_gradients(zip(grads, self.trainable_variables))
 
         self._wacky_tape._tape = None

@@ -111,14 +111,15 @@ class ReplayBuffer(BasicMemory):
             num_mini_batches = max(int(self.memory.length/mini_batch_size), 1)
 
         mini_batches = []
-        for _ in range(num_mini_batches):
+        for i in range(num_mini_batches):
             if self.memory.length < mini_batch_size:
                 mini_batches.append(
                 self.memory.gather_memories(np.arange(0, self.memory.length))
             )
 
             else:
-                start_index = np.random.randint(0, self.memory.length - mini_batch_size)
+                #start_index = np.random.randint(0, self.memory.length - mini_batch_size)
+                start_index = i*mini_batch_size
                 mini_batches.append(
                     self.memory.gather_memories(np.arange(start_index, start_index+mini_batch_size))
                 )

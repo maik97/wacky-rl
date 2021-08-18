@@ -36,5 +36,5 @@ class PPOCriticLoss:
         #exit()
 
 
-        #return tf.reduce_mean(tf.keras.losses.MSE(tf.reshape(returns, [-1,1]), values))
-        return tf.keras.losses.MSE(tf.reshape(returns, [-1,1]), values)
+        return tf.reduce_mean(tf.keras.losses.MSE(tf.reshape(returns, [-1,1]), values))
+        #return tf.keras.losses.MSE(tf.reshape(returns, [-1,1]), values)
