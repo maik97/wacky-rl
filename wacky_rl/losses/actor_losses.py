@@ -133,7 +133,7 @@ class PPOActorLoss(BaseActorLoss):
         #losses = tf.squeeze(tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy))
         losses = tf.squeeze(tf.math.negative(tf.math.minimum(s_1, s_2)))
 
-        losses = losses - self.entropy_factor * dist.entropy()
+        losses = losses + self.entropy_factor * dist.entropy()
         #losses = self._add_entropy_loss(losses, probs, log_probs)
 
         if not critic_loss is None:
