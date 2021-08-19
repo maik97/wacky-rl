@@ -109,11 +109,11 @@ class WackyModel(tf.keras.Model):
 
 
 
-    def _wacky_forward(self, x):
+    def _wacky_forward(self, x, training):
         #print(x)
         for l in self._wacky_layer: x = l(x)
         if not self._wacky_outputs is None:
-            return [out(x) for out in self._wacky_outputs]
+            return [out(x, training) for out in self._wacky_outputs]
         return x
 
     def _start_wacky_recording(self):
@@ -139,7 +139,7 @@ class WackyModel(tf.keras.Model):
             self._start_wacky_recording()
 
         # Feedforward:
-        x = self._wacky_forward(inputs)
+        x = self._wacky_forward(inputs, training)
 
         # Transform outputs if needed (for example to calculate actions):
         if not self._wacky_out_func is None:
@@ -147,7 +147,6 @@ class WackyModel(tf.keras.Model):
 
         if training:
             self._stop_wacky_recording()
-
         return x
 
     def _wacky_backprob(self, *args, **kwargs):

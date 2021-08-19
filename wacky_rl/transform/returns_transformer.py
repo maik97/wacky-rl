@@ -98,10 +98,10 @@ class GAE:
 
     def __call__(self, rewards, dones, values, next_value):
 
-        rewards = tf.squeeze(rewards)
-        dones = tf.squeeze(dones)
-        values = tf.squeeze(values)
-        next_value = tf.squeeze(next_value)
+        rewards = tf.squeeze(rewards).numpy()
+        dones = tf.squeeze(dones).numpy()
+        values = tf.squeeze(values).numpy()
+        next_value = tf.squeeze(next_value).numpy()
 
         returns = tf.TensorArray(size=len(rewards), dtype=tf.float32)
         advantages = tf.TensorArray(size=len(rewards), dtype=tf.float32)
@@ -115,7 +115,7 @@ class GAE:
             g = delta + self.gamma * self.lamda * dones[i] * g
             ret =  g + values[i]
             returns = returns.write(i,ret)
-            advantages = advantages.write(i, ret - values[i])
+            advantages = advantages.write(i, g)
 
         #adv = advantages.stack()
         #adv_mean = tf.reduce_mean(adv)

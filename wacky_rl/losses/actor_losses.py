@@ -111,7 +111,8 @@ class PPOActorLoss(BaseActorLoss):
         self.train_with_argmax = train_with_argmax
         super().__init__(entropy_factor, loss_transform)
 
-    def __call__(self, actor, actions, batch_input, old_probs, advantage, critic_loss=None):
+    #def __call__(self, actor, actions, batch_input, old_probs, advantage, critic_loss=None):
+    def __call__(self, actor, actions, batch_input, old_probs, advantage, returns, critic):
 
         if self.is_discrete:
             _, _, _, dist = actor.predict_step(batch_input, act_argmax=False)
@@ -120,32 +121,49 @@ class PPOActorLoss(BaseActorLoss):
             log_probs = tf.math.log(probs)
 
         else:
-            _, _, _, dist = actor.predict_step(batch_input, act_argmax=False)
-            probs = tf.squeeze(dist.prob(actions))
-            log_probs = tf.squeeze(dist.log_prob(actions))
-            #log_probs = log_probs - tf.math.log(1 - tf.math.pow(tf.math.tanh(actions), 2) + 1e-6)
+            dist = actor.predict_step(batch_input, act_argmax=False)[0]
+            #_, _, _, dist = actor.predict_step(batch_input, act_argmax=False)
+            #print(actions)
+            probs = dist.calc_probs(tf.reshape(actions, [-1, len(actions)]))
+            #probs = tf.squeeze(dist.prob(actions))
+            #log_probs = tf.squeeze(dist.log_prob(actions))
+            ##log_probs = log_probs - tf.math.log(1 - tf.math.pow(tf.math.tanh(actions), 2) + 1e-6)
 
         #entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, log_probs)))
         #entropy = tf.math.negative(tf.math.multiply(probs, log_probs))
         #print(entropy)
-        s_1, s_2 = self._calc_surrogates_alternative(probs, old_probs, advantage)
+        #print(old_probs)
+        #print(probs)
+        print(np.mean(probs.numpy()))
+        #exit()
 
+        losses = []
+        for i in range(dist.num_actions):
+            s_1, s_2 = self._calc_surrogates_alternative(probs[i], old_probs[i], advantage)
+            losses.append(- tf.reduce_mean(tf.math.minimum(s_1, s_2)))
+
+        losses = tf.reduce_mean(tf.stack(losses))
         #losses = tf.squeeze(tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy))
-        losses = - tf.reduce_mean(tf.math.minimum(s_1, s_2))
-        losses = losses + tf.reduce_mean(self.entropy_factor * dist.entropy())
+        #losses = - tf.reduce_mean(tf.math.minimum(s_1, s_2))
+        #losses = losses + self.entropy_factor * tf.reduce_mean(dist.entropy())
         #losses = self._add_entropy_loss(losses, probs, log_probs)
 
-        if not critic_loss is None:
-            losses = losses - tf.reduce_mean(self.entropy_factor * critic_loss)
+        critic_loss = critic.train_step(critic, batch_input, returns)
+        losses = losses + 0.5 * tf.reduce_mean(critic_loss)
+
+        #if not critic_loss is None:
+            #losses = losses - tf.reduce_mean(self.entropy_factor * critic_loss)
 
         return losses
 
-    def _calc_surrogates(self, probs, old_probs, advantage):
+    def _calc_surrogates(self, log_probs, log_old_probs, advantage):
 
-        probs = tf.squeeze(probs)
-        old_probs = tf.squeeze(old_probs)
+        log_probs = tf.squeeze(log_probs)
+        log_old_probs = tf.squeeze(log_old_probs)
         advantage = tf.squeeze(advantage)
-        ratios = tf.math.divide_no_nan(probs, old_probs)
+        #ratios = tf.math.divide_no_nan(log_probs, log_old_probs)
+
+        ratios = tf.math.exp(log_probs - log_old_probs)
 
         sur_1 = tf.math.multiply_no_nan(ratios, advantage)
         sur_2 = tf.math.multiply_no_nan(tf.clip_by_value(ratios, 1.0 - self.clip_param, 1.0 + self.clip_param), advantage)
@@ -163,7 +181,7 @@ class PPOActorLoss(BaseActorLoss):
             t = tf.constant(t)
             op = tf.constant(op)
 
-            # ratio = tf.math.exp(tf.math.log(pb + 1e-10) - tf.math.log(op + 1e-10))
+            #ratio = tf.math.exp(tf.math.log(pb + 1e-10) - tf.math.log(op + 1e-10))
             ratio = tf.math.divide(pb, op)
             s1 = tf.math.multiply(ratio, t)
             s2 = tf.math.multiply(tf.clip_by_value(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param), t)
