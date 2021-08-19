@@ -98,13 +98,15 @@ class GAE:
 
     def __call__(self, rewards, dones, values, next_value):
 
-        rewards = tf.squeeze(rewards).numpy()
-        dones = tf.squeeze(dones).numpy()
+        #rewards = tf.squeeze(rewards).numpy()
+        #dones = tf.squeeze(dones).numpy()
         values = tf.squeeze(values).numpy()
         next_value = tf.squeeze(next_value).numpy()
 
-        returns = tf.TensorArray(size=len(rewards), dtype=tf.float32)
-        advantages = tf.TensorArray(size=len(rewards), dtype=tf.float32)
+        #returns = tf.TensorArray(size=len(rewards), dtype=tf.float32)
+        returns = []
+        #advantages = tf.TensorArray(size=len(rewards), dtype=tf.float32)
+        advantages = []
 
         g = 0.0
         for i in reversed(range(len(rewards))):
@@ -114,8 +116,13 @@ class GAE:
                 delta = rewards[i] + self.gamma * next_value * dones[i] - values[i]
             g = delta + self.gamma * self.lamda * dones[i] * g
             ret =  g + values[i]
-            returns = returns.write(i,ret)
-            advantages = advantages.write(i, g)
+            returns.append(ret)
+            advantages.append(g)
+            #returns = returns.write(i,ret)
+            #advantages = advantages.write(i, g)
+
+        returns.reverse()
+        advantages.reverse()
 
         #adv = advantages.stack()
         #adv_mean = tf.reduce_mean(adv)
@@ -125,4 +132,4 @@ class GAE:
         #    stand_adv = (adv[i] - adv_mean) / adv_std
         #    advantages = advantages.write(i, stand_adv)
 
-        return advantages, returns
+        return tf.stack(advantages), tf.stack(returns)

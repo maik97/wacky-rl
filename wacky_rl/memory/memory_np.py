@@ -1,166 +1,101 @@
+import random
 import numpy as np
 import tensorflow as tf
 
-class TensorMemory:
+class BufferMemory:
 
-    def __init__(self, maxlen=None, clear_after_read=True):
-        self._pointer = 0
-        self._lenght = 0
-        self._memory = None
+    def __init__(self, maxlen=None):
+
+        self._memory = []
         self.maxlen = maxlen
-        self.clear_after_read = clear_after_read
-
-    def __call__(self, list_of_items):
-
-        if self._memory is None:
-
-            self._memory = [
-                tf.TensorArray(
-                    size=0,
-                    dtype=tf.float32,
-                    dynamic_size=True,
-                    #name='items_at_{}'.format(i),
-                    #clear_after_read=self.clear_after_read
-                ) for i in range(len(list_of_items))
-            ]
-
-        for i in range(len(list_of_items)):
-            self._memory[i] = self._add_item_to_tensor_array(self._memory[i], list_of_items[i])
-
-        self._pointer += 1
-        self._lenght += 1
-        if not self.maxlen is None:
-            self._lenght = min(self._lenght, self.maxlen)
-            if self._pointer >= self.maxlen:
-                self._pointer = 0
+        self.index_dict = {}
+        self._lenght = 0
 
     @property
-    def length(self):
+    def num_arrays(self):
+        return len(self._memory)
+
+    def __len__(self):
         return self._lenght
 
-    @property
-    def number_of_types(self):
-        if self._memory is None:
-            return 0
-        else:
-            return len(self._memory)
+    def _check_maxlen(self):
+        if not self.maxlen is None:
+            if self._lenght > self.maxlen:
+                self.pop(0)
+                self._lenght -= 1
 
-    @property
-    def tensors(self):
-        return self._memory
+    def keys(self):
+        return self.index_dict.keys()
 
-    def _add_item_to_tensor_array(self, tensor_array, item):
-        tensor_array = tensor_array.write(self._pointer, tf.cast(item, dtype=tf.float32))
-        return tensor_array
+    def pop(self, index):
+        for elem in self._memory: np.delete(elem, index)
 
-    def gather_memories(self, indices):
-        return [mem.gather(indices) for mem in self._memory]
-
-    def read_memories(self):
-        return [mem.stack() for mem in self._memory]
-
-    def read_specific_memories(self, index):
-        return self._memory[index].stack()
-
-    def add_tensor_array(self, tensor_array):
-        self._memory.append(tensor_array)
-
-    def delete_tensor_arrays(self):
-        [mem.close() for mem in self._memory]
-        del self._memory
-        self._memory = None
-        self._pointer = 0
-        self._lenght = 0
-
-
-class BasicMemory:
-
-
-    def __init__(self):
-        self.memory = TensorMemory()
-
-    def remember(self, list_of_items):
-        self.memory(list_of_items)
-
-    def get(self, indices):
-        return self.memory.gather_memories(indices)
-
-    def recall(self):
-        mem_list = self.memory.read_memories()
-        self.clear()
-        return mem_list
-
-    def sample(self, *args, **kwargs):
-        return self.recall()
+    def pop_array(self, index_or_key):
+        if isinstance(index_or_key, str):
+            index_or_key = self.index_dict[index_or_key]
+        self._memory.pop(index_or_key)
 
     def clear(self):
-        self.memory.delete_tensor_arrays()
+        self._memory = [np.array([]) for _ in range(self.num_arrays)]
 
+    def __call__(self, to_remember, *arg, **kwargs):
 
-class ReplayBuffer(BasicMemory):
+        if isinstance(to_remember, list):
+            for i in range(len(to_remember)):
+                self._add_item_to_memory(to_remember[i], index=i)
 
-    def __init__(self, maxlen=10_000):
-        super().__init__()
-        self.memory = TensorMemory(maxlen)
+        elif isinstance(to_remember, dict):
+            for key in to_remember.keys():
+                self._add_item_to_memory(to_remember[key], index=self.index_dict[key])
 
-    def sample_mini_batch(self,mini_batch_size, num_mini_batches=None, clear_memory=False):
-        if not num_mini_batches is None:
-            num_mini_batches = min(num_mini_batches, int(self.memory.length/mini_batch_size))
-            num_mini_batches = max(num_mini_batches, 1)
         else:
-            num_mini_batches = max(int(self.memory.length/mini_batch_size), 1)
+            self._add_item_to_memory(to_remember, *arg, **kwargs)
 
-        mini_batches = []
-        for i in range(num_mini_batches):
-            if self.memory.length < mini_batch_size:
-                mini_batches.append(
-                self.memory.gather_memories(np.arange(0, self.memory.length))
-            )
+        self._lenght += 1
+        self._check_maxlen()
 
-            else:
-                #start_index = np.random.randint(0, self.memory.length - mini_batch_size)
-                start_index = i*mini_batch_size
-                mini_batches.append(
-                    self.memory.gather_memories(np.arange(start_index, start_index+mini_batch_size))
-                )
-        #print(self.memory.length)
-        if clear_memory:
-            self.clear()
-        return mini_batches
+    def _add_item_to_memory(self, items_to_remember, key=None, index=None):
 
-    def sample(self, batch_size):
-        batch_size = min(batch_size, self.memory.length)
-        indices = np.random.choice(self.memory.length, batch_size, replace=False)
-        return self.memory.gather_memories(indices)
+        if isinstance(items_to_remember, tf.Tensor):
+            items_to_remember = items_to_remember.numpy()
 
-    def recall(self, clear_after_read=True):
-        mem_list = self.memory.read_memories()
-        if clear_after_read:
-            self.clear()
+        if not key is None:
+            if not key in self.keys():
+                self.index_dict[key] = self.num_arrays + 1
+            index = self.index_dict[key]
+
+        if not index is None:
+            try:
+                self._memory[index] = np.concatenate([self._memory[index], np.array([items_to_remember])], axis=0)
+            except:
+                self._memory.append(np.array([items_to_remember]))
+
+    def __getitem__(self, key_or_index):
+        if isinstance(key_or_index, str):
+            key_or_index = self._memory[self.index_dict[key_or_index]]
+        return self._memory[key_or_index]
+
+    def replay(self, to_tensor=True, indices=None):
+        if indices is None:
+            mem_list = self._memory
+        else:
+            mem_list = [elem[indices] for elem in self._memory]
+        if to_tensor:
+            return [tf.stack(elem) for elem in mem_list]
+
         return mem_list
 
+    def mini_batches(self, batch_size, num_batches=None, shuffle_batches=False):
 
-class ShortTermLongTermBuffer:
+        batches = []
+        for elem in self._memory:
+            batches.append(np.array_split(np.copy(elem), self._lenght // batch_size))
 
-    def __init__(self, short_term_mem=None, long_term_mem=None):
+        batches = list(zip(*batches))
 
-        if short_term_mem is None:
-            self.short_term_mem = BasicMemory()
-        else:
-            self.short_term_mem = short_term_mem
+        if shuffle_batches:
+            random.shuffle(batches)
 
-        if long_term_mem is None:
-            self.long_term_mem = ReplayBuffer()
-        else:
-            self.long_term_mem = long_term_mem
-
-    def remember(self, tensor_list):
-        self.short_term_mem.remember(tensor_list)
-        self.long_term_mem.remember(tensor_list)
-
-    def recall_short_term(self):
-        return self.short_term_mem.recall()
-
-    def sample_long_term(self, batch_size=64):
-        return self.long_term_mem.sample(batch_size)
-
+        if num_batches is None:
+            return batches
+        return batches[-num_batches:]

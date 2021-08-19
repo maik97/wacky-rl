@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+import random
 
 class TensorMemory:
 
@@ -103,7 +104,7 @@ class ReplayBuffer(BasicMemory):
         super().__init__()
         self.memory = TensorMemory(maxlen)
 
-    def sample_mini_batch(self,mini_batch_size, num_mini_batches=None, clear_memory=False):
+    def sample_mini_batch(self,mini_batch_size, num_mini_batches=None, clear_memory=False, shuffle=True):
         if not num_mini_batches is None:
             num_mini_batches = min(num_mini_batches, int(self.memory.length/mini_batch_size))
             num_mini_batches = max(num_mini_batches, 1)
@@ -118,14 +119,17 @@ class ReplayBuffer(BasicMemory):
             )
 
             else:
-                #start_index = np.random.randint(0, self.memory.length - mini_batch_size)
-                start_index = i*mini_batch_size
+                if shuffle:
+                    start_index = np.random.randint(0, self.memory.length - mini_batch_size)
+                else:
+                    start_index = i*mini_batch_size
                 mini_batches.append(
                     self.memory.gather_memories(np.arange(start_index, start_index+mini_batch_size))
                 )
         #print(self.memory.length)
         if clear_memory:
             self.clear()
+
         return mini_batches
 
     def sample(self, batch_size):

@@ -105,7 +105,7 @@ class WackyModel(tf.keras.Model):
         self._wacky_out_func = out_function
 
         # Gradient Tape:
-        self._wacky_tape = tf.GradientTape(persistent=True)
+        #self._wacky_tape = tf.GradientTape(persistent=True)
 
 
 
@@ -135,8 +135,8 @@ class WackyModel(tf.keras.Model):
     def call(self, inputs, training=False, mask=None, *args, **kwargs):
 
         # Start Tape Recording if necessary:
-        if not self._wacky_tape._recording and training:
-            self._start_wacky_recording()
+        #if not self._wacky_tape._recording and training:
+            #self._start_wacky_recording()
 
         # Feedforward:
         x = self._wacky_forward(inputs, training)
@@ -145,8 +145,8 @@ class WackyModel(tf.keras.Model):
         if not self._wacky_out_func is None:
             x = self._wacky_out_func(x, *args, **kwargs)
 
-        if training:
-            self._stop_wacky_recording()
+        #if training:
+            #self._stop_wacky_recording()
         return x
 
     def _wacky_backprob(self, *args, **kwargs):
@@ -189,10 +189,10 @@ class WackyModel(tf.keras.Model):
 
         grads = tape.gradient(loss, self.trainable_variables)
         if self.grad_clip:
-            grads = [tf.clip_by_norm(g, 0.5) for g in grads]
+            grads = [tf.clip_by_norm(g, 0.1) for g in grads]
         self._wacky_optimizer.apply_gradients(zip(grads, self.trainable_variables))
 
-        self._wacky_tape._tape = None
+        #self._wacky_tape._tape = None
 
         if isinstance(losses_returns, list):
             return [loss] + losses_returns
