@@ -29,11 +29,11 @@ class PPOCriticLoss:
 
     def __call__(self, critic, batch_input, returns):
 
-        #print()
-
+        #print(returns)
         values = critic.predict_step(batch_input)
-        #print(tf.keras.losses.MSE(tf.reshape(returns, [-1,1]), values))
+        #print(values)
         #exit()
+
 
 
         return tf.reduce_mean(tf.keras.losses.MSE(tf.reshape(returns, [-1,1]), values))
