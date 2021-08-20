@@ -9,7 +9,7 @@ class NormalActionDistributions:
     def __init__(self, num_actions):
 
         self.num_actions = num_actions
-        self.min_sigma = 0.01
+        self.min_sigma = 1e-6
         self.max_sigma = 1.0
 
     def __call__(self, mu_list, sigma_list):
@@ -39,24 +39,24 @@ class NormalActionDistributions:
         actions = []
         for i in range(self.num_actions):
             actions.append(self.distributions[i].sample())
-        return tf.stack(actions)
+        return tf.math.tanh(tf.stack(actions))
 
     def mean_actions(self):
         actions = []
         for i in range(self.num_actions):
             actions.append(self.distributions[i].mean())
-        return tf.stack(actions)
+        return tf.math.tanh(tf.stack(actions))
 
     def calc_probs(self, actions):
         probs = []
         for i in range(self.num_actions):
-            probs.append(self.distributions[i].prob(actions[i]))
+            probs.append(self.distributions[i].prob(tf.math.atanh(actions[i])))
         return tf.stack(probs)
 
     def calc_log_probs(self, actions):
         log_probs = []
         for i in range(self.num_actions):
-            log_probs.append(self.distributions[i].log_prob(actions[i]))
+            log_probs.append(self.distributions[i].log_prob(tf.math.atanh(actions[i])))
         return tf.stack(log_probs)
 
     def calc_entropy(self):
