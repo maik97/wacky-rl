@@ -6,29 +6,30 @@ from tensorflow.keras import layers
 
 class DiscreteActionDistributions:
 
-    def __init__(self, num_multi_actions):
+    def __init__(self, num_actions):
 
-        self.num_multi_actions = num_multi_actions
+        self.num_actions = num_actions
 
     def __call__(self, x):
 
         self.distributions = x
+        return self
 
     def sample_actions(self):
         actions = []
-        for i in range(self.num_multi_actions):
+        for i in range(self.num_actions):
             actions.append(tf.squeeze(tf.random.categorical(self.distributions[i], num_samples=1), axis=1))
         return tf.stack(actions)
 
     def mean_actions(self):
         actions = []
-        for i in range(self.num_multi_actions):
+        for i in range(self.num_actions):
             actions.append(tf.math.argmax(self.distributions[i], axis=-1))
         return tf.stack(actions)
 
     def calc_probs(self, actions):
         probs = []
-        for i in range(self.num_multi_actions):
+        for i in range(self.num_actions):
             probs.append(
                 tf.gather_nd(
                     tf.nn.softmax(self.distributions[i]), tf.stack([np.arange(len(actions[i])), actions[i]], axis=1)
@@ -39,7 +40,7 @@ class DiscreteActionDistributions:
     def calc_log_probs(self, actions):
         log_probs = []
         probs = self.calc_probs(actions)
-        for i in range(self.num_multi_actions):
+        for i in range(self.num_actions):
             log_probs.append(tf.math.log(probs[i]))
         return tf.stack(log_probs)
 
@@ -48,7 +49,7 @@ class DiscreteActionDistributions:
 
     def actions_to_one_hot(self, actions):
         one_hots = []
-        for i in range(self.num_multi_actions):
+        for i in range(self.num_actions):
             one_hots.append(tf.one_hot(actions[i], len(actions[i])))
         return tf.stack(one_hots)
 
@@ -56,17 +57,17 @@ class DiscreteActionLayer(layers.Layer):
 
     def __init__(
             self,
-            num_actions,
-            num_multi_actions=1,
+            num_bins,
+            num_actions=1,
             activation='softmax',
             *args,
             **kwargs
     ):
         super().__init__(**kwargs)
 
-        self._action_layer = [layers.Dense(num_actions, activation=activation, *args, **kwargs) for _ in range(num_multi_actions)]
-        self.distributions = DiscreteActionDistributions(num_multi_actions)
+        self._action_layer = [layers.Dense(num_bins, activation=activation, *args, **kwargs) for _ in range(num_actions)]
+        self.distributions = DiscreteActionDistributions(num_actions)
 
     def call(self, inputs, **kwargs):
         action_list = [l(inputs) for l in self._action_layer]
-        return self.distributions.update_distributions(action_list)
+        return self.distributions(action_list)

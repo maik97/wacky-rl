@@ -111,48 +111,21 @@ class PPOActorLoss(BaseActorLoss):
         self.train_with_argmax = train_with_argmax
         super().__init__(entropy_factor, loss_transform)
 
-    #def __call__(self, actor, actions, batch_input, old_probs, advantage, critic_loss=None):
     def __call__(self, actor, actions, batch_input, old_probs, advantage, returns, critic):
 
-        if self.is_discrete:
-            _, _, _, dist = actor.predict_step(batch_input, act_argmax=False)
-            indices = tf.cast(tf.stack([np.arange(len(actions)), tf.squeeze(actions)], axis=1), dtype=tf.int32)
-            probs = tf.gather_nd(dist, indices)
-            log_probs = tf.math.log(probs)
+        dist = actor.predict_step(batch_input, act_argmax=False)[0]
+        probs = dist.calc_probs(tf.reshape(actions, [-1, len(actions)]))
+
+        if dist.num_actions > 1:
+            losses = []
+            for i in range(dist.num_actions):
+                s_1, s_2 = self._calc_surrogates_alternative(tf.stack(probs[i]), tf.stack(old_probs[i]), advantage)
+                losses.append(tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2))))
+            losses = tf.reduce_mean(tf.stack(losses))
 
         else:
-            dist = actor.predict_step(batch_input, act_argmax=False)[0]
-            #_, _, _, dist = actor.predict_step(batch_input, act_argmax=False)
-            #print(actions)
-            probs = dist.calc_probs(tf.reshape(actions, [-1, len(actions)]))
-            #probs = tf.squeeze(dist.prob(actions))
-            #log_probs = tf.squeeze(dist.log_prob(actions))
-            ##log_probs = log_probs - tf.math.log(1 - tf.math.pow(tf.math.tanh(actions), 2) + 1e-6)
-
-        #entropy = tf.reduce_mean(tf.math.negative(tf.math.multiply(probs, log_probs)))
-        #entropy = tf.math.negative(tf.math.multiply(probs, log_probs))
-        #print(entropy)
-        #print(old_probs)
-        #print(probs)
-        #print(np.mean(probs.numpy()))
-        #exit()
-
-        losses = []
-        for i in range(dist.num_actions):
-            s_1, s_2 = self._calc_surrogates_alternative(tf.stack(probs[i]), tf.stack(old_probs[i]), advantage)
-            losses.append(tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2))))
-
-        losses = tf.reduce_mean(tf.stack(losses))
-        #losses = tf.squeeze(tf.math.negative(tf.reduce_mean(tf.math.minimum(s_1, s_2)) + 0.001 * entropy))
-        #losses = - tf.reduce_mean(tf.math.minimum(s_1, s_2))
-        #losses = losses + self.entropy_factor * tf.reduce_mean(dist.entropy())
-        #losses = self._add_entropy_loss(losses, probs, log_probs)
-
-        #critic_loss = critic.train_step(critic, batch_input, returns)
-        #losses = losses + 0.05 * tf.reduce_mean(critic_loss)
-
-        #if not critic_loss is None:
-            #losses = losses - tf.reduce_mean(self.entropy_factor * critic_loss)
+            s_1, s_2 = self._calc_surrogates_alternative(tf.stack(probs), tf.stack(old_probs), advantage)
+            losses = tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2)))
 
         return losses
 

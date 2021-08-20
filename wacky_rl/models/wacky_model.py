@@ -113,7 +113,7 @@ class WackyModel(tf.keras.Model):
         #print(x)
         for l in self._wacky_layer: x = l(x)
         if not self._wacky_outputs is None:
-            return [out(x, training) for out in self._wacky_outputs]
+            return [out(x) for out in self._wacky_outputs]
         return x
 
     def _start_wacky_recording(self):
