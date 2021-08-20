@@ -9,7 +9,7 @@ class NormalActionDistributions:
     def __init__(self, num_actions):
 
         self.num_actions = num_actions
-        self.min_sigma = 0.1
+        self.min_sigma = 0.01
         self.max_sigma = 1.0
 
     def update_distributions(self, mu_list, sigma_list):
@@ -23,7 +23,7 @@ class NormalActionDistributions:
                     self._scale_sigma(sigma_list[i])
                 )
             )
-        actions = self.sample_actions()
+        #actions = self.sample_actions()
         #print(actions)
         #print(self.calc_probs(actions))
         return self

@@ -24,6 +24,11 @@ class BufferMemory:
                 self.pop(0)
                 self._lenght -= 1
 
+    def _get_index(self, index_or_key):
+        if isinstance(index_or_key, str):
+            return self.index_dict[index_or_key]
+        return index_or_key
+
     def keys(self):
         return self.index_dict.keys()
 
@@ -31,12 +36,21 @@ class BufferMemory:
         for elem in self._memory: np.delete(elem, index)
 
     def pop_array(self, index_or_key):
+
+        index = self._get_index(index_or_key)
+        self._memory.pop(index)
+
         if isinstance(index_or_key, str):
-            index_or_key = self.index_dict[index_or_key]
-        self._memory.pop(index_or_key)
+            self.index_dict.pop(index_or_key, None)
+
+        for key in self.index_dict.keys():
+            if self.index_dict[key] > index:
+                self.index_dict[key] = self.index_dict[key] - 1
 
     def clear(self):
-        self._memory = [np.array([]) for _ in range(self.num_arrays)]
+        self._memory = []
+        self.index_dict = {}
+        self._lenght = 0
 
     def __call__(self, to_remember, *arg, **kwargs):
 
@@ -61,7 +75,7 @@ class BufferMemory:
 
         if not key is None:
             if not key in self.keys():
-                self.index_dict[key] = self.num_arrays + 1
+                self.index_dict[key] = self.num_arrays
             index = self.index_dict[key]
 
         if not index is None:

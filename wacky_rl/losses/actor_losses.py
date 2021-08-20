@@ -148,8 +148,8 @@ class PPOActorLoss(BaseActorLoss):
         #losses = losses + self.entropy_factor * tf.reduce_mean(dist.entropy())
         #losses = self._add_entropy_loss(losses, probs, log_probs)
 
-        critic_loss = critic.train_step(critic, batch_input, returns)
-        losses = losses + 0.05 * tf.reduce_mean(critic_loss)
+        #critic_loss = critic.train_step(critic, batch_input, returns)
+        #losses = losses + 0.05 * tf.reduce_mean(critic_loss)
 
         #if not critic_loss is None:
             #losses = losses - tf.reduce_mean(self.entropy_factor * critic_loss)

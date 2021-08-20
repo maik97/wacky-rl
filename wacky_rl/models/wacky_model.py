@@ -189,7 +189,7 @@ class WackyModel(tf.keras.Model):
 
         grads = tape.gradient(loss, self.trainable_variables)
         if self.grad_clip:
-            grads = [tf.clip_by_norm(g, 0.1) for g in grads]
+            grads = [tf.clip_by_norm(g, 0.5) for g in grads]
         self._wacky_optimizer.apply_gradients(zip(grads, self.trainable_variables))
 
         #self._wacky_tape._tape = None
