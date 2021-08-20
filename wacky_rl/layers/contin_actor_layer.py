@@ -12,7 +12,7 @@ class NormalActionDistributions:
         self.min_sigma = 0.01
         self.max_sigma = 1.0
 
-    def update_distributions(self, mu_list, sigma_list):
+    def __call__(self, mu_list, sigma_list):
         #print(mu_list)
         #print(sigma_list)
         self.distributions = []
@@ -82,7 +82,7 @@ class ContinActionLayer(layers.Layer):
         self._sigma_layer = [layers.Dense(1, activation=sigma_activation, *args, **kwargs) for _ in range(num_actions)]
         self.distributions = NormalActionDistributions(num_actions)
 
-    def call(self, inputs, training=False):
+    def call(self, inputs, **kwargs):
         mu_list = [mu_l(inputs) for mu_l in self._mu_layer]
         sigma_list = [sigma_l(inputs) for sigma_l in self._sigma_layer]
-        return self.distributions.update_distributions(mu_list, sigma_list)
+        return self.distributions(mu_list, sigma_list)
