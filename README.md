@@ -33,7 +33,7 @@ For some examples check out the [agents](https://github.com/maik97/wacky-rl/tree
 
 Alternatively you can use the prebuilt agents.
 
-A2C:
+####A2C:
 ```python
 import gym
 from wacky_rl.agents import A2C
@@ -48,7 +48,7 @@ trainer.episode_train(300)
 trainer.test(100)
 ```
 
-PPO:
+####PPO:
 ```python
 import gym
 from wacky_rl.agents import PPO
