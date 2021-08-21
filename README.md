@@ -132,7 +132,8 @@ class CustomAgent(AgentCore):
         # Add a memory:
         self.memory = wacky_rl.memory.BufferMemory()
         
-        # In most cases you want to calculate returns or rewards, check out to the transform folder more Classes.
+        # When implementing rl algorithms you want to calculate returns (for value functions)
+        # and advantages (for policy gradients), check out to the transform folder more options.
         self.calc_returns = wacky_rl.transform.ExpectedReturnsCalculator()
         
     def act(self, inputs, act_argmax=False, save_memories=True):
