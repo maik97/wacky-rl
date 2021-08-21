@@ -148,7 +148,7 @@ class CustomAgent(AgentCore):
 
         return actions.numpy()
 
-    def learn(self):
+    def learn(self): # Example from a2c
         
         actions, states, new_states, rewards, dones = self.memory.replay()
 
@@ -159,7 +159,7 @@ class CustomAgent(AgentCore):
         adv = tf.squeeze(adv)
         adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
 
-        c_loss = self.critic.train_on_batch(states, returns)
+        c_loss = self.critic.train_step(states, returns)
         a_loss = self.actor.train_step(states, actions=actions, advantage=adv)
 
         self.memory.clear()
