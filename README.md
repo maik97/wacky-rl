@@ -69,6 +69,28 @@ trainer.n_step_train(5_000_000)
 trainer.test(100)
 ```
 
+#### Create your own Model:
+```python
+import wacky_rl
+import tensorflow as tf
+
+N_ACTIONS = 2
+
+model = wacky_rl.models.WackyModel(
+    optimizer = tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
+    loss = wacky_rl.losses.ActorLoss(entropy_factor=0.001)
+)
+
+model.add(tf.keras.layers.Dense(64))
+model.add(tf.keras.layers.Dense(64))
+model.add(wacky_rl.layers.DiscreteActionLayer(num_bins=N_ACTIONS))
+
+# Call the model:
+model(...)
+
+# Train the model:
+model.train_step(...)
+```
 
 ## Citing
 
