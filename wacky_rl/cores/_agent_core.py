@@ -12,7 +12,7 @@ class AgentCore:
         raise NotImplementedError('When subclassing the `AgentCore` class, you should '
                                   'implement a `act` method.')
 
-    def train(self, *args, **kwargs):
+    def learn(self, *args, **kwargs):
         raise NotImplementedError('When subclassing the `AgentCore` class, you should '
                                   'implement a `train` method.')
 

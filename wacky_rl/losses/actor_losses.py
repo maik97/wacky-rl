@@ -1,10 +1,10 @@
 import tensorflow as tf
+import wacky_rl
 
-
-class ActorLoss:
+class ActorLoss(wacky_rl.losses.WackyLoss):
 
     def __init__(self, entropy_factor: float = 0.0):
-
+        super().__init__()
         self.entropy_factor = entropy_factor
 
     def __call__(self, prediction, actions, advantage):
@@ -31,10 +31,10 @@ class ActorLoss:
         return loss
 
 
-class SoftActorLoss:
+class SoftActorLoss(wacky_rl.losses.WackyLoss):
 
     def __init__(self, entropy_factor: float = 0.0):
-
+        super().__init__()
         self.entropy_factor = entropy_factor
 
     def __call__(self, prediction, actions, q):
@@ -61,10 +61,10 @@ class SoftActorLoss:
         return loss
 
 
-class PPOActorLoss:
+class PPOActorLoss(wacky_rl.losses.WackyLoss):
 
     def __init__(self, clip_param: float = 0.2, entropy_factor: float = 0.0):
-
+        super().__init__()
         self.clip_param = clip_param
         self.entropy_factor = entropy_factor
 
