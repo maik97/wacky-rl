@@ -12,6 +12,10 @@ class DiscreteActionDistributions:
         self.num_actions = num_actions
         self.convert_to_contin = convert_to_contin
 
+    @property
+    def x(self):
+        return self.distributions
+
     def __call__(self, x):
 
         self.distributions = x

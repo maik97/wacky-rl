@@ -13,8 +13,7 @@ class NormalActionDistributions:
         self.max_sigma = 1.0
 
     def __call__(self, mu_list, sigma_list):
-        #print(mu_list)
-        #print(sigma_list)
+        self.x = [mu_list, sigma_list]
         self.distributions = []
         for i in range(self.num_actions):
             self.distributions.append(
@@ -23,9 +22,6 @@ class NormalActionDistributions:
                     self._scale_sigma(sigma_list[i])
                 )
             )
-        #actions = self.sample_actions()
-        #print(actions)
-        #print(self.calc_probs(actions))
         return self
 
     def _scale_mu(self, mu):
@@ -64,6 +60,22 @@ class NormalActionDistributions:
         for i in range(self.num_actions):
             entropies.append(self.distributions[i].entropy())
         return tf.stack(entropies)
+
+    def discrete_to_contin(self, actions, num_bins):
+        contin_actions = []
+        for i in range(self.num_actions):
+            contin_actions.append(
+                (tf.cast(actions[i], dtype=tf.float32) - (0.5 * (num_bins-1))) / (0.5 * (num_bins - 1))
+            )
+        return tf.stack(contin_actions)
+
+    def contin_to_discrete(self, actions, num_bins):
+        discrete_actions = []
+        for i in range(self.num_actions):
+            discrete_actions.append(
+                (actions[i] * (0.5 * (num_bins - 1))) + (0.5 * (num_bins - 1))
+            )
+        return tf.cast(tf.stack(discrete_actions), dtype=tf.int32)
 
 
 class ContinActionLayer(layers.Layer):
