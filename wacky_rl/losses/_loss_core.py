@@ -1,4 +1,4 @@
-class BaseLoss:
+class WackyLoss:
 
     def __init__(self):
         pass
