@@ -3,6 +3,13 @@
 Create your own custom reinforcement learning agents.
 With it's modular approach `wacky-rl` makes the implementation of reinforcement learning easy and flexible - without restricting you!
 
+## Prebuilt Agents
+
+- [ ] DQN
+- [x] A2C 
+- [ ] SAC
+- [x] PPO
+
 ## Installation
 
 - Install Wacky-RL with pip:
@@ -28,7 +35,7 @@ python setup.py install
 ## Documentation 
 
 See the [documentation](https://wacky-rl.rtfd.io) for a detailed explanation on creating your own agents with `wacky-rl`.
-For some examples check out the [agents](https://github.com/maik97/wacky-rl/tree/master/wacky_rl/agents).
+For some examples check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky_rl/agents).
 
 ## Examples
 
@@ -63,13 +70,6 @@ trainer = Trainer(env, agent)
 trainer.n_step_train(5_000_000)
 trainer.test(100)
 ```
-
-## Prebuilt Agents
-
-- [ ] DQN
-- [x] A2C 
-- [ ] SAC
-- [x] PPO
 
 
 ## Citing
