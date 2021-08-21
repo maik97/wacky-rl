@@ -5,6 +5,9 @@ With it's modular approach `wacky-rl` makes the implementation of reinforcement 
 
 Wacky-RL uses [Tensorflow 2](https://www.tensorflow.org/install) and you can create WackyModel's based on [Keras](https://keras.io/).
 
+See the [documentation](https://wacky-rl.rtfd.io) for a detailed explanation on creating your own agents with `wacky-rl`.
+For some examples check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky_rl/agents).
+
 ## Prebuilt Agents
 
 - [ ] DQN
@@ -34,16 +37,9 @@ python setup.py install
 - tensorflow-probability >= 0.12.2
 - gym >= 0.17.3
 
-## Documentation 
-
-See the [documentation](https://wacky-rl.rtfd.io) for a detailed explanation on creating your own agents with `wacky-rl`.
-For some examples check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky_rl/agents).
-
 ## Examples
 
-Alternatively you can use the prebuilt agents.
-
-#### A2C:
+#### Prebuilt A2C:
 ```python
 import gym
 from wacky_rl.agents import A2C
@@ -58,7 +54,7 @@ trainer.episode_train(300)
 trainer.test(100)
 ```
 
-#### PPO:
+#### Prebuilt PPO:
 ```python
 import gym
 from wacky_rl.agents import PPO
