@@ -86,7 +86,7 @@ model.add(wacky_rl.layers.DiscreteActionLayer(num_bins=N_ACTIONS))
 input_layer = tf.keras.layers.Input(shape=env.observation_space.shape)
 hidden_dense = tf.keras.layers.Dense(64, activation='relu')(input_layer)
 hidden_dense = tf.keras.layers.Dense(64, activation='relu')(hidden_dense)
-output_layer = wacky_rl.layers.DiscreteActionLayer(num_bins=N_ACTIONS)
+output_layer = wacky_rl.layers.DiscreteActionLayer(num_bins=N_ACTIONS)(hidden_dense)
 model = wacky_rl.models.WackyModel(inputs=input_layer, outputs=output_layer)
 
 # If you choose to create your model by subclassing WackyModel instead,
