@@ -60,7 +60,7 @@ class BufferMemory:
 
         elif isinstance(to_remember, dict):
             for key in to_remember.keys():
-                self._add_item_to_memory(to_remember[key], index=self.index_dict[key])
+                self._add_item_to_memory(to_remember[key], key=key)
 
         else:
             self._add_item_to_memory(to_remember, *arg, **kwargs)
@@ -99,11 +99,18 @@ class BufferMemory:
 
         return mem_list
 
-    def mini_batches(self, batch_size, num_batches=None, shuffle_batches=False):
+    def mini_batches(self, batch_size, num_batches=None, shuffle_batches=False, keys=None):
+
+        if not keys is None:
+            item_indices = []
+            for key in keys:
+                item_indices.append(self.index_dict[key])
+        else:
+            item_indices = range(self.num_arrays)
 
         batches = []
-        for elem in self._memory:
-            batches.append(np.array_split(np.copy(elem), self._lenght // batch_size))
+        for i in item_indices:
+            batches.append(np.array_split(np.copy(self._memory[i]), self._lenght // batch_size))
 
         batches = list(zip(*batches))
 

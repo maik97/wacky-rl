@@ -107,7 +107,6 @@ class PPOActorLoss(BaseActorLoss):
     def __call__(self, actor, actions, batch_input, old_probs, advantage, returns, critic):
 
         dist = actor.predict_step(batch_input, act_argmax=False)[0]
-        actions = dist.contin_to_discrete(tf.reshape(actions, [-1, len(actions)]))
         probs = dist.calc_probs(tf.reshape(actions, [-1, len(actions)]))
         entropies = dist.calc_entropy(actions)
 
