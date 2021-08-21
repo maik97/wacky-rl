@@ -22,6 +22,8 @@ class WackyModel(tf.keras.Model):
 
         if not inputs is None and not outputs is None:
             self._wacky_layer = [tf.keras.Model(inputs, outputs)]
+        elif outputs is None:
+            self._wacky_layer = inputs
         else:
             self._wacky_layer = []
 
@@ -29,7 +31,13 @@ class WackyModel(tf.keras.Model):
         self.model_index = model_index
 
     def add(self, layer):
-        self._wacky_layer.append(layer)
+        if isinstance(layer, list):
+            for l in layer: self._wacky_layer.append(l)
+        else:
+            self._wacky_layer.append(layer)
+
+    def pop(self, index):
+        self._wacky_layer.pop(index)
 
     def nature_network(self, num_units=64, activation='relu'):
         self.add(layers.Dense(num_units, activation=activation))
@@ -102,7 +110,7 @@ class WackyModel(tf.keras.Model):
             return super().train_step(inputs)
 
         with tf.GradientTape() as tape:
-            x = self._wacky_forward(inputs)
+            x = self(inputs)
             loss = self._wacky_loss(x, *args, **kwargs)
             #loss = self.loss_alpha * self._wacky_loss(x, *args, **kwargs)
 
