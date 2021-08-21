@@ -135,8 +135,8 @@ class CustomAgent(AgentCore):
         self.calc_returns = wacky_rl.transform.ExpectedReturnsCalculator()
         
     def act(self, inputs, act_argmax=False, save_memories=True):
-        inputs = tf.expand_dims(tf.squeeze(inputs), 0)
-        dist = self.actor(inputs, act_argmax=True)
+        
+        dist = self.actor(tf.expand_dims(tf.squeeze(inputs), 0))
         
         if act_argmax: # if testing
             actions = dist.mean_actions()
