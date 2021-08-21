@@ -1,7 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import layers
 
-import wacky_rl
 from wacky_rl import losses
 
 class WackyModel(tf.keras.Model):
@@ -9,38 +8,29 @@ class WackyModel(tf.keras.Model):
     def __init__(
             self,
             model_layer: (list, tf.keras.layers.Layer) = None,
-            optimizer: tf.keras.optimizers.Optimizer = None,
-            loss: losses.WackyLoss = None,
+            optimizer: (str, tf.keras.optimizers.Optimizer) = 'rmsprop',
+            loss: (str, losses.WackyLoss, tf.keras.losses.Loss) = 'mse',
             loss_alpha: float = 1.0,
             model_name: str = 'UnnamedWackyModel',
             model_index: int = None,
-            grad_clip=False,
     ):
 
         super().__init__()
 
         self.model_name = model_name
         self.model_index = model_index
-        self.grad_clip = grad_clip
 
         # Loss Function:
         self.loss_alpha = loss_alpha
-
-        if loss is None:
-            self._wacky_loss = wacky_rl.losses.MeanSquaredErrorLoss()
-        else:
+        if isinstance(loss, losses.WackyLoss):
             self._wacky_loss = loss
-            # TODO: Add keras loss wrapper and str
+        else:
+            self._wacky_loss = None
+            self.compile(optimizer=optimizer, loss=loss)
 
         # Model Layer:
         if model_layer is None:
-            self._wacky_layer = [
-                layers.Flatten(),
-                layers.Dense(64, activation='relu'),
-                layers.Dense(64, activation='relu')
-            ]
-            # TODO: Add action layer based on loss
-
+            self._wacky_layer = []
         else:
             if not isinstance(model_layer, list):
                 self._wacky_layer = [model_layer]
@@ -48,13 +38,20 @@ class WackyModel(tf.keras.Model):
                 self._wacky_layer = model_layer
 
         # Optimizer:
-        if optimizer is None:
-            self._optimizer = tf.keras.optimizers.RMSprop()
-        else:
-            self._optimizer = optimizer
-            # TODO: Add keras optimizer with str
+        if not self._is_compiled:
+            self.optimizer = self._get_optimizer(optimizer)
+
+    def add(self, layer):
+        self._wacky_layer.append(layer)
+
+    def _maybe_build_network(self):
+        if len(self._wacky_layer) == 0:
+            self.add(layers.Flatten())
+            self.add(layers.Dense(64, activation='relu'))
+            self.add(layers.Dense(64, activation='relu'))
 
     def _wacky_forward(self, x):
+        self._maybe_build_network()
         for l in self._wacky_layer: x = l(x)
         return x
 
@@ -63,17 +60,14 @@ class WackyModel(tf.keras.Model):
 
     def train_step(self, inputs, *args, **kwargs):
 
+        if self._wacky_loss is None:
+            return super().train_step(inputs)
+
         with tf.GradientTape() as tape:
             x = self._wacky_forward(inputs)
             loss = self.loss_alpha * self._wacky_loss(x, *args, **kwargs)
 
-        grads = tape.gradient(loss, self.trainable_variables)
-
-        if self.grad_clip:
-            grads = [tf.clip_by_norm(g, 0.5) for g in grads]
-
-        self._optimizer.apply_gradients(zip(grads, self.trainable_variables))
-
+        self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
         return loss
 
     def predict_step(self, data, mask=None, *args, **kwargs):
@@ -85,16 +79,15 @@ class WackyDualingModel:
     def __init__(
             self,
             model_layer: (list, tf.keras.layers.Layer) = None,
-            optimizer: tf.keras.optimizers.Optimizer = None,
-            loss: wacky_rl.losses.WackyLoss = None,
+            optimizer: (str, tf.keras.optimizers.Optimizer) = 'rmsprop',
+            loss: (str, losses.WackyLoss, tf.keras.losses.Loss) = 'mse',
             loss_alpha: float = 1.0,
             model_name: str = 'UnnamedWackyModel',
             model_index: int = None,
-            grad_clip=False,
     ):
 
-        self.model_1 = WackyModel(model_layer, optimizer, loss, loss_alpha, model_name+'_1', model_index, grad_clip)
-        self.model_2 = WackyModel(model_layer, optimizer, loss, loss_alpha, model_name+'_2', model_index, grad_clip)
+        self.model_1 = WackyModel(model_layer, optimizer, loss, loss_alpha, model_name+'_1', model_index)
+        self.model_2 = WackyModel(model_layer, optimizer, loss, loss_alpha, model_name+'_2', model_index)
 
     @property
     def is_dualing(self):

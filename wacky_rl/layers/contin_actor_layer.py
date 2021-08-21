@@ -6,11 +6,11 @@ from tensorflow.keras import layers
 
 class NormalActionDistributions:
 
-    def __init__(self, num_actions):
+    def __init__(self, num_actions, min_sigma:float = 0.1, max_sigma: float =1.0):
 
         self.num_actions = num_actions
-        self.min_sigma = 1e-6
-        self.max_sigma = 1.0
+        self.min_sigma = min_sigma
+        self.max_sigma = max_sigma
 
     def __call__(self, mu_list, sigma_list):
         self.x = [mu_list, sigma_list]
@@ -82,9 +82,11 @@ class ContinActionLayer(layers.Layer):
 
     def __init__(
             self,
-            num_actions,
-            mu_activation='tanh',
-            sigma_activation='sigmoid',
+            num_actions: int,
+            mu_activation: str = 'tanh',
+            sigma_activation: str = 'sigmoid',
+            min_sigma: float = 0.1,
+            max_sigma: float = 1.0,
             *args,
             **kwargs
     ):
@@ -92,7 +94,7 @@ class ContinActionLayer(layers.Layer):
 
         self._mu_layer = [layers.Dense(1, activation=mu_activation, *args, **kwargs) for _ in range(num_actions)]
         self._sigma_layer = [layers.Dense(1, activation=sigma_activation, *args, **kwargs) for _ in range(num_actions)]
-        self.distributions = NormalActionDistributions(num_actions)
+        self.distributions = NormalActionDistributions(num_actions, min_sigma, max_sigma)
 
     def call(self, inputs, **kwargs):
         mu_list = [mu_l(inputs) for mu_l in self._mu_layer]
