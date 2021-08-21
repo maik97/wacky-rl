@@ -112,6 +112,7 @@ import tensorflow as tf
 import wacky_rl
 from wacky_rl.agents import AgentCore
 
+# When subclassing a custom agent, you need to implement the act() and learn() methods.
 
 class CustomAgent(AgentCore):
 
