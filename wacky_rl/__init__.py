@@ -1,5 +1,3 @@
-from wacky_rl.build_agent import MultiAgentCompiler
-
 from wacky_rl import trainer
 from wacky_rl import actions
 from wacky_rl import agents

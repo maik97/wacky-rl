@@ -30,35 +30,26 @@ See the documentation for a detailed explanation on creating your own agents wit
 
 ## Example
 
-Additionally to creating your own agents, you can use the prebuilt agents:
-
 ```python
 import gym
+from wacky_rl.agents import PPO
+from wacky_rl.trainer import Trainer
 
-from wacky_rl import MultiAgentCompiler
-from wacky_rl.agents import DiscreteActorCriticCore
+# env = gym.make('CartPole-v0')
+env = gym.make("LunarLanderContinuous-v2")
+agent = PPO(env, approximate_contin=False)
 
-#  It's possible to use multiple agents for different actions with MultiAgentCompiler.
-agent = MultiAgentCompiler(gym.make('CartPole-v0'), log_dir='_logs')
-
-#  For the example environment only one agent is needed:
-ac = DiscreteActorCriticCore(common_units=32, actor_units=128, critic_units=128)
-
-# Assign the agent to the action:
-agent.assign_agent(ac, at_index=0)
-
-# Compile and train:
-agent = agent.build(max_steps_per_episode=None)
-agent.train_agent(500)
+trainer = Trainer(env, agent)
+trainer.n_step_train(5_000_000)
+trainer.test(100)
 ```
 
 ## Prebuilt Agents
 
 - [ ] DQN
-- [x] Discrete Actor Critic 
-- [ ] Continuous Actor Critc
+- [ ] A2C 
 - [ ] SAC
-- [ ] PPO
+- [x] PPO
 
 
 ## Citing
