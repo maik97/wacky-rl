@@ -164,7 +164,7 @@ class CustomAgent(AgentCore):
 
         self.memory.clear()
 
-        return tf.reduce_mean(a_loss).numpy(), tf.reduce_mean(c_loss).numpy()
+        return a_loss.numpy(), c_loss.numpy()
 ```
 
 ## Citing
