@@ -1,5 +1,5 @@
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+#import os
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import numpy as np
 import tensorflow as tf
@@ -16,35 +16,31 @@ from wacky_rl.transform import GAE
 from wacky_rl.trainer import Trainer
 
 
-class PPO(AgentCore):
+class TestPPO(AgentCore):
 
     def __init__(self, env, approximate_contin=False):
-        super(PPO, self).__init__()
+        super(TestPPO, self).__init__()
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
         self.advantage_and_returns = GAE()
 
         # Actor:
-        model_layer = [
-            Dense(256, activation='relu'),
-            Dense(256, activation='relu'),
-        ]
-
         num_actions = int(self.decode_space(env.action_space))
 
         if self.space_is_discrete(env.action_space):
-            model_layer.append(DiscreteActionLayer(num_bins=num_actions))
+            out_layer = DiscreteActionLayer(num_bins=num_actions)
         elif self.approximate_contin:
-            model_layer.append(DiscreteActionLayer(num_bins=21, num_actions=num_actions))
+            out_layer= DiscreteActionLayer(num_bins=21, num_actions=num_actions)
         else:
-            model_layer.append(ContinActionLayer(num_actions=num_actions))
+            out_layer= ContinActionLayer(num_actions=num_actions)
 
-        self.actor = WackyModel(
-            model_layer=model_layer,
-            optimizer=tf.keras.optimizers.RMSprop(3e-4),
+        self.actor = WackyModel()
+        self.actor.nature_network(256)
+        self.actor.add(out_layer)
+        self.actor.compile(
+            optimizer=tf.keras.optimizers.RMSprop(3e-4, clipnorm=0.5),
             loss=PPOActorLoss(entropy_factor=0.001),
-            grad_clip=True,
         )
 
         # Critic:
@@ -52,7 +48,7 @@ class PPO(AgentCore):
         critic_dense = Dense(256, activation='relu')(critic_input)
         critic_dense = Dense(256, activation='relu')(critic_dense)
         critic_out = Dense(1)(critic_dense)
-        self.critic = Model(critic_input, critic_out)
+        self.critic = Model(inputs=critic_input, outputs=critic_out)
         self.critic.compile(optimizer='adam', loss='mse')
 
     def act(self, inputs, act_argmax=False, save_memories=True):
@@ -110,10 +106,10 @@ def train_ppo():
     import gym
     # env = gym.make('CartPole-v0')
     env = gym.make("LunarLanderContinuous-v2")
-    agent = PPO(env, approximate_contin=False)
+    agent = TestPPO(env)
 
     trainer = Trainer(env, agent)
-    trainer.n_step_train(5_000_000)
+    trainer.n_step_train(5_000_000, train_on_test=False)
     trainer.test(100)
 
 if __name__ == "__main__":

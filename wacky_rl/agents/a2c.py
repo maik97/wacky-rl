@@ -1,6 +1,7 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+import numpy as np
 import tensorflow as tf
 
 from tensorflow.keras.layers import Dense, Input
@@ -15,35 +16,31 @@ from wacky_rl.transform import ExpectedReturnsCalculator
 from wacky_rl.trainer import Trainer
 
 
-class A2C(AgentCore):
+class AC2(AgentCore):
 
     def __init__(self, env, approximate_contin=False):
-        super(A2C, self).__init__()
+        super(AC2, self).__init__()
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
         self.calc_returns = ExpectedReturnsCalculator()
 
         # Actor:
-        model_layer = [
-            Dense(256, activation='relu'),
-            Dense(256, activation='relu'),
-        ]
-
         num_actions = int(self.decode_space(env.action_space))
 
         if self.space_is_discrete(env.action_space):
-            model_layer.append(DiscreteActionLayer(num_bins=num_actions))
+            out_layer = DiscreteActionLayer(num_bins=num_actions)
         elif self.approximate_contin:
-            model_layer.append(DiscreteActionLayer(num_bins=21, num_actions=num_actions))
+            out_layer = DiscreteActionLayer(num_bins=21, num_actions=num_actions)
         else:
-            model_layer.append(ContinActionLayer(num_actions=num_actions))
+            out_layer = ContinActionLayer(num_actions=num_actions)
 
-        self.actor = WackyModel(
-            model_layer=model_layer,
-            optimizer=tf.keras.optimizers.RMSprop(3e-4),
+        self.actor = WackyModel()
+        self.actor.nature_network(256)
+        self.actor.add(out_layer)
+        self.actor.compile(
+            optimizer=tf.keras.optimizers.RMSprop(3e-4, clipnorm=0.5),
             loss=ActorLoss(entropy_factor=0.001),
-            grad_clip=True,
         )
 
         # Critic:
@@ -93,9 +90,9 @@ class A2C(AgentCore):
 def train_a2c():
 
     import gym
-    env = gym.make('CartPole-v0')
-    # env = gym.make("LunarLanderContinuous-v2")
-    agent = A2C(env)
+    #env = gym.make('CartPole-v0')
+    env = gym.make("LunarLanderContinuous-v2")
+    agent = AC2(env)
 
     trainer = Trainer(env, agent)
     trainer.episode_train(300)

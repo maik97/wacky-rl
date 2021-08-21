@@ -76,14 +76,24 @@ import tensorflow as tf
 
 N_ACTIONS = 2
 
-model = wacky_rl.models.WackyModel(
-    optimizer = tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
-    loss = wacky_rl.losses.ActorLoss(entropy_factor=0.001)
-)
-
+# Create your model like a Keras SequentialModel:
+model = wacky_rl.models.WackyModel()
 model.add(tf.keras.layers.Dense(64))
 model.add(tf.keras.layers.Dense(64))
 model.add(wacky_rl.layers.DiscreteActionLayer(num_bins=N_ACTIONS))
+
+# Alternatively create your model with the Keras Functional API:
+input_layer = tf.keras.layers.Input(shape=env.observation_space.shape)
+hidden_dense = tf.keras.layers.Dense(256, activation='relu')(input_layer)
+hidden_dense = tf.keras.layers.Dense(256, activation='relu')(hidden_dense)
+output_layer = wacky_rl.layers.DiscreteActionLayer(num_bins=N_ACTIONS)
+model = wacky_rl.models.WackyModel(inputs=input_layer, outputs=output_layer)
+
+# Compile the model:
+model.compile(
+    optimizer=tf.keras.optimizers.RMSprop(3e-4, clipnorm=0.5),  # alternative use str: 'rmsprop' 
+    loss=wacky_rl.losses.ActorLoss(entropy_factor=0.001)  # alternative use str: 'mse' (only for keras losses)
+)
 
 # Call the model:
 model(...)
