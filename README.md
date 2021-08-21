@@ -76,14 +76,13 @@ import tensorflow as tf
 
 N_ACTIONS = 2
 
-# Create your model like a Keras Sequential Model https://keras.io/guides/sequential_model/:
+# Create your model like a Keras Sequential Model, https://keras.io/guides/sequential_model/
 model = wacky_rl.models.WackyModel() # A list of layers can also be passed directly
 model.add(tf.keras.layers.Dense(64))
 model.add(tf.keras.layers.Dense(64))
 model.add(wacky_rl.layers.DiscreteActionLayer(num_bins=N_ACTIONS))
 
-# Alternatively create your model with the Keras Functional API
-# https://keras.io/guides/functional_api/
+# Alternatively create your model with the Keras Functional API, https://keras.io/guides/functional_api/
 input_layer = tf.keras.layers.Input(shape=env.observation_space.shape)
 hidden_dense = tf.keras.layers.Dense(256, activation='relu')(input_layer)
 hidden_dense = tf.keras.layers.Dense(256, activation='relu')(hidden_dense)
@@ -91,7 +90,7 @@ output_layer = wacky_rl.layers.DiscreteActionLayer(num_bins=N_ACTIONS)
 model = wacky_rl.models.WackyModel(inputs=input_layer, outputs=output_layer)
 
 # If you choose to create your model by subclassing WackyModel instead,
-# make sure to create a call() method, see: https://keras.io/guides/making_new_layers_and_models_via_subclassing/.
+# make sure to create a call() method, see: https://keras.io/guides/making_new_layers_and_models_via_subclassing/
 
 # Compile the model:
 model.compile(
