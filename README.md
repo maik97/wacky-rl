@@ -1,6 +1,6 @@
 # Wacky-RL
 
-Create your own custom reinforcement learning agents.
+Create your own custom reinforcement learning agents (or use the prebuilt agents).
 With it's modular approach `wacky-rl` makes the implementation of reinforcement learning easy and flexible - without restricting you!
 
 ## Prebuilt Agents
