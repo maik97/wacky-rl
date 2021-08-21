@@ -91,14 +91,14 @@ model = wacky_rl.models.WackyModel(inputs=input_layer, outputs=output_layer)
 
 # Compile the model:
 model.compile(
-    optimizer=tf.keras.optimizers.RMSprop(3e-4, clipnorm=0.5),  # alternative use str: 'rmsprop' 
-    loss=wacky_rl.losses.ActorLoss(entropy_factor=0.001)  # alternative use str: 'mse' (only for keras losses)
+    optimizer=tf.keras.optimizers.RMSprop(3e-4, clipnorm=0.5),
+    loss=wacky_rl.losses.ActorLoss(entropy_factor=0.001)
 )
 
 # Call the model:
 model(...)
 
-# Train the model:
+# Train the model (don't use fit() or train_on_batch() when using a WackyLoss):
 model.train_step(...)
 ```
 
