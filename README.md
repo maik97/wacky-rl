@@ -21,12 +21,13 @@ python setup.py install
 ## Dependencies
 
 - tensorflow >= 2.5
-- tensorflow-probability
+- tensorflow-probability >= 0.12.2
 - gym >= 0.17.3
 
 ## Documentation 
 
 See the documentation for a detailed explanation on creating your own agents with `wacky-rl`.
+For some examples check out the [agents](https://github.com/maik97/wacky-rl/tree/master/wacky_rl/agents).
 
 ## Example
 
