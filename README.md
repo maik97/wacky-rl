@@ -105,6 +105,68 @@ model(...)
 model.train_step(...)
 ```
 
+#### Create your own Agent by subclassing:
+
+```python
+import tensorflow as tf
+import wacky_rl
+from wacky_rl.agents import AgentCore
+
+
+class CustomAgent(AgentCore):
+
+    def __init__(self, env):
+        super().__init__()
+        
+        # Use the space_is_discrete() for flexible actions
+        if self.space_is_discrete(env.action_space):
+            out_layer = wacky_rl.layers.DiscreteActionLayer(...)
+        else:
+            out_layer = wacky_rl.layers.ContinActionLayer(...)
+        
+        # Create your models:
+        self.actor = ...
+        self.critic = ...
+        
+        # Add a memory:
+        self.memory = wacky_rl.memory.BufferMemory()
+        
+        # In most cases you want to calculate returns or rewards, check out to the transform folder more Classes.
+        self.calc_returns = wacky_rl.transform.ExpectedReturnsCalculator()
+        
+    def act(self, inputs, act_argmax=False, save_memories=True):
+        inputs = tf.expand_dims(tf.squeeze(inputs), 0)
+        dist = self.actor(inputs, act_argmax=True)
+        
+        if act_argmax: # if testing
+            actions = dist.mean_actions()
+        else:
+            actions = dist.sample_actions()
+
+        if save_memories:
+            self.memory(actions, key='actions')
+
+        return actions.numpy()
+
+    def learn(self):
+        
+        actions, states, new_states, rewards, dones = self.memory.replay()
+
+        values = self.critic.predict(states)
+        returns = self.calc_returns(rewards)
+
+        adv = returns - values
+        adv = tf.squeeze(adv)
+        adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
+
+        c_loss = self.critic.train_on_batch(states, returns)
+        a_loss = self.actor.train_step(states, actions=actions, advantage=adv)
+
+        self.memory.clear()
+
+        return tf.reduce_mean(a_loss).numpy(), tf.reduce_mean(c_loss).numpy()
+```
+
 ## Citing
 
 If you use `wacky-rl` in your research, you can cite it as follows:
