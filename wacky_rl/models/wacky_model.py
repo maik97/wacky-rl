@@ -1,58 +1,20 @@
-import numpy as np
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras import optimizers
-from tensorflow.keras import losses
 
-'''
-hidden_units: (list, tuple, np.ndarray, int, str) = 'auto',  # not used when model_layer provided
-hidden_activation: str = None,  # not used when model_layer provided
-out_units: int = None,  # not used when model_layer provided
-out_activation: str = None,  # not used when model_layer provided
-
-# Model Layer:
-if model_layer is None:
-
-    if hidden_units == 'auto':
-        hidden_units = [64, 64]
-    elif hidden_units is None:
-        hidden_units = []
-    elif not isinstance(hidden_units, (list, tuple, np.ndarray)):
-        hidden_units = [hidden_units]
-
-    self._wacky_layer = [layers.Dense(units, activation=hidden_activation) for units in hidden_units]
-
-    if not out_units is None:
-        self._wacky_layer.append(layers.Dense(out_units, activation=out_activation))
-    else:
-        raise Warning(
-            "No output layer at {}, {}, {}: neither out_units nor out_layer was not specified.".format(
-                self, self.model_name, self.model_index
-            )
-        )
-else:
-
-    if not isinstance(model_layer, list):
-        self._wacky_layer = [model_layer]
-    else:
-        self._wacky_layer = model_layer
-'''
+import wacky_rl
 
 class WackyModel(tf.keras.Model):
 
     def __init__(
             self,
             model_layer: (list, layers.Layer) = None,
-            model_outputs: (list, layers.Layer) = None,
             optimizer: optimizers.Optimizer = None,
-            learning_rate: float = None,
             loss = None,
             loss_alpha: float = 1.0,
-            out_function = None,
             model_name: str = 'UnnamedWackyModel',
             model_index: int = None,
             grad_clip=False,
-            use_wacky_backprob =True,
     ):
 
         super().__init__()
@@ -60,14 +22,16 @@ class WackyModel(tf.keras.Model):
         self.model_name = model_name
         self.model_index = model_index
         self.grad_clip = grad_clip
-        self.use_wacky_backprob = use_wacky_backprob
 
         # Model Layer:
         if model_layer is None:
             self._wacky_layer = [
                 layers.Flatten(),
-                layers.Dense(128, activation='relu')
+                layers.Dense(64, activation='relu'),
+                layers.Dense(64, activation='relu')
             ]
+
+            # TODO: Add action layer based on loss
 
         else:
             if not isinstance(model_layer, list):
@@ -75,129 +39,34 @@ class WackyModel(tf.keras.Model):
             else:
                 self._wacky_layer = model_layer
 
-        # Model Outputs:
-        if not model_outputs is None:
-            if not isinstance(model_outputs, list):
-                self._wacky_outputs = [model_outputs]
-            else:
-                self._wacky_outputs = model_outputs
-        else:
-            self._wacky_outputs = None
-
         # Optimizer:
         if optimizer is None:
             self._wacky_optimizer = tf.keras.optimizers.RMSprop()
         else:
             self._wacky_optimizer = optimizer
 
-        # Learning Rate:
-        if not learning_rate is None:
-            self._wacky_optimizer.learning_rate.assign(learning_rate)
-
         # Loss Function:
         if loss is None:
-            self._wacky_loss = losses.MeanSquaredError()
+            self._wacky_loss = wacky_rl.losses.MeanSquaredErrorLoss()
         else:
             self._wacky_loss = loss
         self.loss_alpha = loss_alpha
 
-        # Output Function (e.g. to calculate actions)
-        self._wacky_out_func = out_function
-
-        # Gradient Tape:
-        #self._wacky_tape = tf.GradientTape(persistent=True)
-
-
-
-    def _wacky_forward(self, x, training):
-        #print(x)
+    def _wacky_forward(self, x):
         for l in self._wacky_layer: x = l(x)
-        if not self._wacky_outputs is None:
-            return [out(x) for out in self._wacky_outputs]
         return x
-
-    def _start_wacky_recording(self):
-        if not self._wacky_tape._recording:
-            self._wacky_tape._push_tape()
-            self._wacky_tape.watch(self.trainable_variables)
-
-    def _stop_wacky_recording(self):
-        self._wacky_tape._recording = False
-        # self._wacky_tape.stop_recording()
-
-    #def _continue_wacky_recording(self):
-        #self._wacky_tape._recording = True
-
-    #def _ensure_wacky_recording(self):
-        #self._wacky_tape._ensure_recording()
-
 
     def call(self, inputs, training=False, mask=None, *args, **kwargs):
+        return self._wacky_forward(inputs)
 
-        # Start Tape Recording if necessary:
-        #if not self._wacky_tape._recording and training:
-            #self._start_wacky_recording()
+    def train_step(self, inputs, *args, **kwargs):
 
-        # Feedforward:
-        x = self._wacky_forward(inputs, training)
-
-        # Transform outputs if needed (for example to calculate actions):
-        if not self._wacky_out_func is None:
-            x = self._wacky_out_func(x, *args, **kwargs)
-
-        #if training:
-            #self._stop_wacky_recording()
-        return x
-
-    def _wacky_backprob(self, *args, **kwargs):
-        self._start_wacky_recording()
-        losses_returns = self._wacky_loss(*args, **kwargs)
-
-        if isinstance(losses_returns, list):
-            losses = losses_returns[0]
-            losses_returns.pop(0)
-        else:
-            losses = losses_returns
-
-        loss = self.loss_alpha * losses
-        # loss = self.loss_alpha  * tf.nn.compute_average_loss(losses)
-
-        self._wacky_tape._pop_tape()
-        return loss, losses_returns, self._wacky_tape
-
-    def _normal_backprob(self, *args, **kwargs):
-
-        with tf.GradientTape() as tape:
-            losses_returns = self._wacky_loss(*args, **kwargs)
-
-            if isinstance(losses_returns, list):
-                losses = losses_returns[0]
-                losses_returns.pop(0)
-            else:
-                losses = losses_returns
-
-            loss = self.loss_alpha * losses
-        return loss, losses_returns, tape
-
-
-    def train_step(self, *args, **kwargs):
-
-        if self.use_wacky_backprob:
-            loss, losses_returns, tape = self._wacky_backprob(*args, **kwargs)
-        else:
-            loss, losses_returns, tape = self._normal_backprob(*args, **kwargs)
+        with tf.GradientTape as tape:
+            x = self._wacky_forward(inputs)
+            loss = self.loss_alpha * self._wacky_loss(x, *args, **kwargs)
 
         grads = tape.gradient(loss, self.trainable_variables)
-        if self.grad_clip:
-            grads = [tf.clip_by_norm(g, 0.5) for g in grads]
-        self._wacky_optimizer.apply_gradients(zip(grads, self.trainable_variables))
-
-        #self._wacky_tape._tape = None
-
-        if isinstance(losses_returns, list):
-            return [loss] + losses_returns
-        else:
-            return loss
+        return loss
 
     def predict_step(self, data, mask=None, *args, **kwargs):
         return self.call(data, training=False, mask=mask, *args, **kwargs)

@@ -8,4 +8,4 @@ from wacky_rl.losses.combine_losses import pre_calced_loss
 from wacky_rl.losses.q_losses import SoftQLoss
 
 from wacky_rl.losses.val_losses import SoftValueLoss
-from wacky_rl.losses.val_losses import PPOCriticLoss
+from wacky_rl.losses.val_losses import MeanSquaredErrorLoss
