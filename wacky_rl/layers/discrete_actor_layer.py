@@ -6,11 +6,10 @@ from tensorflow.keras import layers
 
 class DiscreteActionDistributions:
 
-    def __init__(self, num_bins, num_actions, convert_to_contin):
+    def __init__(self, num_bins, num_actions):
 
         self.num_bins = num_bins
         self.num_actions = num_actions
-        self.convert_to_contin = convert_to_contin
 
     @property
     def x(self):
@@ -50,8 +49,12 @@ class DiscreteActionDistributions:
             log_probs.append(tf.math.log(probs[i]))
         return tf.stack(log_probs)
 
-    def calc_entropy(self):
-        pass
+    def calc_entropy(self, actions):
+        probs = self.calc_probs(actions)
+        entropies =[]
+        for i in range(self.num_actions):
+            entropies.append(tf.reduce_mean(tf.math.negative(tf.math.multiply(probs[i], tf.math.log(probs[i])))))
+        return tf.stack(entropies)
 
     def actions_to_one_hot(self, actions):
         one_hots = []
@@ -83,14 +86,13 @@ class DiscreteActionLayer(layers.Layer):
             num_bins,
             num_actions=1,
             activation='softmax',
-            convert_to_contin=False,
             *args,
             **kwargs
     ):
         super().__init__(**kwargs)
 
         self._action_layer = [layers.Dense(num_bins, activation=activation, *args, **kwargs) for _ in range(num_actions)]
-        self.distributions = DiscreteActionDistributions(num_bins, num_actions, convert_to_contin)
+        self.distributions = DiscreteActionDistributions(num_bins, num_actions)
 
     def call(self, inputs, **kwargs):
         action_list = [l(inputs) for l in self._action_layer]

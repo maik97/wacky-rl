@@ -55,7 +55,7 @@ class NormalActionDistributions:
             log_probs.append(self.distributions[i].log_prob(tf.math.atanh(actions[i])))
         return tf.stack(log_probs)
 
-    def calc_entropy(self):
+    def calc_entropy(self, actions):
         entropies = []
         for i in range(self.num_actions):
             entropies.append(self.distributions[i].entropy())

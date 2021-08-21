@@ -5,7 +5,6 @@ import wacky_rl.transform
 
 
 class BaseActorLoss:
-    _forward_required = False
 
     def __init__(
             self,
@@ -45,8 +44,6 @@ class BaseActorLoss:
 
 class ActorLoss(BaseActorLoss):
 
-    _forward_required = False
-
     def __init__(
             self,
             entropy_factor: float = None,
@@ -66,8 +63,6 @@ class ActorLoss(BaseActorLoss):
 
 
 class SoftActorLoss(BaseActorLoss):
-
-    _forward_required = True
 
     def __init__(
             self,
@@ -96,8 +91,6 @@ class SoftActorLoss(BaseActorLoss):
 
 class PPOActorLoss(BaseActorLoss):
 
-    _forward_required = True
-
     def __init__(
             self,
             is_discrete: bool = True,
@@ -116,19 +109,24 @@ class PPOActorLoss(BaseActorLoss):
         dist = actor.predict_step(batch_input, act_argmax=False)[0]
         actions = dist.contin_to_discrete(tf.reshape(actions, [-1, len(actions)]))
         probs = dist.calc_probs(tf.reshape(actions, [-1, len(actions)]))
+        entropies = dist.calc_entropy(actions)
 
         if dist.num_actions > 1:
             losses = []
             for i in range(dist.num_actions):
                 s_1, s_2 = self._calc_surrogates_alternative(tf.stack(probs[i]), tf.stack(old_probs[i]), advantage)
-                losses.append(tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2))))
-            losses = tf.reduce_mean(tf.stack(losses))
+                losses.append(
+                    tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2))) + self.entropy_factor * entropies[i]
+                )
+            loss = tf.reduce_mean(tf.stack(losses))
 
         else:
             s_1, s_2 = self._calc_surrogates_alternative(tf.stack(probs), tf.stack(old_probs), advantage)
-            losses = tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2)))
+            loss = tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2))) + self.entropy_factor * entropies
 
-        return losses
+        loss = loss + self.entropy_factor
+
+        return loss
 
     def _calc_surrogates(self, log_probs, log_old_probs, advantage):
 
