@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 
 import wacky_rl
+from wacky_rl import losses
 
 class WackyModel(tf.keras.Model):
 
@@ -9,7 +10,7 @@ class WackyModel(tf.keras.Model):
             self,
             model_layer: (list, tf.keras.layers.Layer) = None,
             optimizer: tf.keras.optimizers.Optimizer = None,
-            loss: wacky_rl.losses.WackyLoss = None,
+            loss: losses.WackyLoss = None,
             loss_alpha: float = 1.0,
             model_name: str = 'UnnamedWackyModel',
             model_index: int = None,
@@ -62,7 +63,7 @@ class WackyModel(tf.keras.Model):
 
     def train_step(self, inputs, *args, **kwargs):
 
-        with tf.GradientTape as tape:
+        with tf.GradientTape() as tape:
             x = self._wacky_forward(inputs)
             loss = self.loss_alpha * self._wacky_loss(x, *args, **kwargs)
 

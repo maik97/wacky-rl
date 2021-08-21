@@ -1,8 +1,8 @@
 import tensorflow as tf
-import wacky_rl
+from wacky_rl import losses
 
 
-class SoftValueLoss(wacky_rl.losses.WackyLoss):
+class SoftValueLoss(losses.WackyLoss):
 
     def __init__(self):
         super().__init__()
@@ -11,7 +11,7 @@ class SoftValueLoss(wacky_rl.losses.WackyLoss):
         target = tf.reshape(tf.squeeze(q) - tf.squeeze(log_probs), [-1, 1])
         return tf.reduce_mean(tf.keras.losses.MSE(target, prediction))
 
-class MeanSquaredErrorLoss(wacky_rl.losses.WackyLoss):
+class MeanSquaredErrorLoss(losses.WackyLoss):
 
     def __init__(self):
         super().__init__()

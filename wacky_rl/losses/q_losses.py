@@ -1,8 +1,8 @@
 import tensorflow as tf
-import wacky_rl
+from wacky_rl import losses
 
 
-class SoftQLoss(wacky_rl.losses.WackyLoss):
+class SoftQLoss(losses.WackyLoss):
 
     def __init__(self, scale: float = 2.0, gamma: float = 0.99):
         super().__init__()

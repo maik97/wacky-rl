@@ -1,7 +1,7 @@
 import tensorflow as tf
-import wacky_rl
+from wacky_rl import losses
 
-class ActorLoss(wacky_rl.losses.WackyLoss):
+class ActorLoss(losses.WackyLoss):
 
     def __init__(self, entropy_factor: float = 0.0):
         super().__init__()
@@ -9,7 +9,7 @@ class ActorLoss(wacky_rl.losses.WackyLoss):
 
     def __call__(self, prediction, actions, advantage):
 
-        dist = prediction[0]
+        dist = prediction
         actions = tf.reshape(actions, [-1, len(actions)])
         log_probs = dist.calc_log_probs(actions)
         entropies = dist.calc_entropy(actions)
@@ -31,7 +31,7 @@ class ActorLoss(wacky_rl.losses.WackyLoss):
         return loss
 
 
-class SoftActorLoss(wacky_rl.losses.WackyLoss):
+class SoftActorLoss(losses.WackyLoss):
 
     def __init__(self, entropy_factor: float = 0.0):
         super().__init__()
@@ -39,7 +39,7 @@ class SoftActorLoss(wacky_rl.losses.WackyLoss):
 
     def __call__(self, prediction, actions, q):
 
-        dist = prediction[0]
+        dist = prediction
         actions = tf.reshape(actions, [-1, len(actions)])
         log_probs = dist.calc_log_probs(actions)
         entropies = dist.calc_entropy(actions)
@@ -61,7 +61,7 @@ class SoftActorLoss(wacky_rl.losses.WackyLoss):
         return loss
 
 
-class PPOActorLoss(wacky_rl.losses.WackyLoss):
+class PPOActorLoss(losses.WackyLoss):
 
     def __init__(self, clip_param: float = 0.2, entropy_factor: float = 0.0):
         super().__init__()
@@ -70,7 +70,7 @@ class PPOActorLoss(wacky_rl.losses.WackyLoss):
 
     def __call__(self, prediction, actions, old_probs, advantage):
 
-        dist = prediction[0]
+        dist = prediction
         actions = tf.reshape(actions, [-1, len(actions)])
         probs = dist.calc_probs(actions)
         entropies = dist.calc_entropy(actions)

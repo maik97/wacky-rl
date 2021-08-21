@@ -13,10 +13,10 @@ import numpy as np
 import tensorflow as tf
 import random
 from wacky_rl.memory.segment_tree import MinSegmentTree, SumSegmentTree
-from wacky_rl.memory import ReplayBuffer
+from wacky_rl.memory import BufferMemory
 
 
-class PrioritizedReplayBuffer(ReplayBuffer):
+class PrioritizedReplayBuffer:
     '''
     Based on:
     https://github.com/Curt-Park/rainbow-is-all-you-need/blob/master/03.per.ipynb
@@ -30,11 +30,12 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         """Initialization."""
         assert alpha >= 0
 
-        super().__init__(maxlen)
 
         self.maxlen = maxlen
         self.max_priority, self.tree_ptr = 1.0, 0
         self.alpha = alpha
+
+        self.memory = BufferMemory(maxlen)
 
         # capacity must be positive and a power of 2.
         tree_capacity = 1
@@ -47,7 +48,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
     def remember(self, tensor_list):
         """Store experience and priority."""
 
-        super().remember(tensor_list)
+        self.memory(tensor_list)
 
         self.sum_tree[self.tree_ptr] = self.max_priority ** self.alpha
         self.min_tree[self.tree_ptr] = self.max_priority ** self.alpha
@@ -57,11 +58,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         """Sample a batch of experiences."""
         assert beta > 0
 
-        batch_size = min(batch_size, self.memory.length)
+        batch_size = min(batch_size, len(self.memory))
 
         indices = self._sample_proportional(batch_size)
 
-        mem_list = self.memory.gather_memories(indices)
+        mem_list = self.memory.replay(indices=indices)
         weights = tf.cast(tf.stack([self._calculate_weight(i, beta) for i in indices]), dtype=tf.float32)
         return mem_list+[weights,indices]
 
@@ -74,7 +75,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         for idx, priority in zip(indices, priorities):
             assert priority > 0
-            assert 0 <= idx < self.memory.length
+            assert 0 <= idx < len(self.memory)
 
             self.sum_tree[idx] = priority ** self.alpha
             self.min_tree[idx] = priority ** self.alpha
@@ -84,7 +85,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
     def _sample_proportional(self, batch_size):# -> List[int]:
         """Sample indices based on proportions."""
         indices = []
-        p_total = self.sum_tree.sum(0, self.memory.length - 1)
+        p_total = self.sum_tree.sum(0, len(self.memory) - 1)
         segment = p_total / batch_size
 
         for i in range(batch_size):
@@ -100,11 +101,11 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         """Calculate the weight of the experience at idx."""
         # get max weight
         p_min = self.min_tree.min() / self.sum_tree.sum()
-        max_weight = (p_min * self.memory.length) ** (-beta)
+        max_weight = (p_min * len(self.memory)) ** (-beta)
 
         # calculate weights
         p_sample = self.sum_tree[idx] / self.sum_tree.sum()
-        weight = (p_sample * self.memory.length) ** (-beta)
+        weight = (p_sample * len(self.memory)) ** (-beta)
         weight = weight / max_weight
 
         return weight
