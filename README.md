@@ -31,6 +31,8 @@ For some examples check out the [agents](https://github.com/maik97/wacky-rl/tree
 
 ## Examples
 
+Alternatively you can use the prebuilt agents.
+
 A2C:
 ```python
 import gym
