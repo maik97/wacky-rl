@@ -11,6 +11,54 @@ class Trainer:
         self.env = env
         self.agent = agent
 
+    def sample_warmup(self, num_episodes):
+        for e in range(num_episodes):
+
+            done = False
+            obs = self.env.reset()
+
+            while not done:
+
+                action = self.agent.act(obs)
+                new_obs, r, done, _ = self.env.step(np.squeeze(action))
+                self.agent.memory({
+                    'obs': obs,
+                    'new_obs': new_obs,
+                    'rewards': r,
+                    'dones': float(1 - int(done)),
+                }
+                )
+                obs = new_obs
+
+    def episode_train(self, num_episodes):
+        for e in range(num_episodes):
+
+            done = False
+            obs = self.env.reset()
+            reward_list = []
+
+            while not done:
+
+                action = self.agent.act(obs)
+                new_obs, r, done, _ = self.env.step(np.squeeze(action))
+                reward_list.append(r)
+                self.agent.memory({
+                    'obs': obs,
+                    'new_obs': new_obs,
+                    'rewards': r,
+                    'dones': float(1 - int(done)),
+                }
+                )
+                obs = new_obs
+
+                if done:
+                    a_loss, c_loss = self.agent.learn()
+                    print()
+                    print('# Episode', e)
+                    print('# Sum R:', np.round(np.sum(reward_list), 1))
+                    print('# Loss A:', np.round(np.mean(a_loss), 4))
+                    print('# Loss C:', np.round(np.mean(c_loss), 4))
+
     def n_step_train(
             self,
             num_steps,
@@ -97,7 +145,7 @@ class Trainer:
 
             while not done:
                 actions = self.agent.act(obs, act_argmax=True, save_memories=False)
-                obs, r, done, _ = self.env.step(np.squeeze(actions.numpy()))
+                obs, r, done, _ = self.env.step(np.squeeze(actions))
                 self.env.render()
                 reward_list.append(r)
 

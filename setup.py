@@ -11,9 +11,9 @@ setup(
   description = 'Create custom reinforcement learning agents with wacky-rl.',
   author = 'Maik Schürmann',
   author_email = 'maik.schuermann97@gmail.com',
-  url = 'https://github.com/maik97',
+  url = 'https://github.com/maik97/wacky-rl',
   download_url = 'https://github.com/maik97/wacky-rl/archive/refs/tags/v0.0.2-alpha.tar.gz',
-  keywords = ['rl', 'actor_critic', 'reinforcement-learning'],
+  keywords = ['rl', 'actor_critic', 'reinforcement-learning', 'ppo', 'a2c', 'sac', 'dqn', 'keras', 'tensorflow', 'python'],
   install_requires=[
           'tensorflow',
           'gym',
