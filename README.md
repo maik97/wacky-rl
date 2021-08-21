@@ -76,7 +76,7 @@ import tensorflow as tf
 
 N_ACTIONS = 2
 
-# Create your model like a Keras SequentialModel:
+# Create your model like a Keras Sequential Model:
 model = wacky_rl.models.WackyModel()
 model.add(tf.keras.layers.Dense(64))
 model.add(tf.keras.layers.Dense(64))
