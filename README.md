@@ -11,19 +11,21 @@ For some examples check out the prebuilt [agents](https://github.com/maik97/wack
 ## Prebuilt Agents
 
 - [ ] DQN 
-  [code,
-  [[1]](http://arxiv.org/abs/1312.5602)
-  [[2]](https://www.nature.com/articles/nature14236)
-  [[3]](http://arxiv.org/abs/1509.06461)]
+  [code],
+  [[1]](http://arxiv.org/abs/1312.5602),
+  [[2]](https://www.nature.com/articles/nature14236),
+  [[3]](http://arxiv.org/abs/1509.06461)
 - [x] A2C 
-  [[code](https://github.com/maik97/wacky-rl/blob/master/wacky_rl/agents/a2c.py),
-  [[4]](https://arxiv.org/abs/1602.01783)]
-- [ ] SAC [code,
-  [[5]](https://arxiv.org/pdf/1801.01290.pdf)
-  [[6]](https://arxiv.org/pdf/1812.05905.pdf)]
-- [x] PPO [[code](https://github.com/maik97/wacky-rl/blob/master/wacky_rl/agents/ppo.py),
-  [[7]](https://arxiv.org/abs/1707.06347)
-  [[8]](http://proceedings.mlr.press/v37/schulman15.pdf)]
+  [[code]](https://github.com/maik97/wacky-rl/blob/master/wacky_rl/agents/a2c.py),
+  [[4]](https://arxiv.org/abs/1602.01783)
+- [ ] SAC
+  [code],
+  [[5]](https://arxiv.org/pdf/1801.01290.pdf),
+  [[6]](https://arxiv.org/pdf/1812.05905.pdf)
+- [x] PPO
+  [[code]](https://github.com/maik97/wacky-rl/blob/master/wacky_rl/agents/ppo.py),
+  [[7]](https://arxiv.org/abs/1707.06347),
+  [[8]](http://proceedings.mlr.press/v37/schulman15.pdf)
 
 ## Installation
 
