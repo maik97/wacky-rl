@@ -48,6 +48,7 @@ python setup.py install
 - tensorflow >= 2.5
 - tensorflow-probability >= 0.12.2
 - gym >= 0.17.3
+- numpy
 
 ## Examples
 
