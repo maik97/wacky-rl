@@ -22,7 +22,7 @@ class WackyModel(tf.keras.Model):
 
         if not inputs is None and not outputs is None:
             self._wacky_layer = [tf.keras.Model(inputs, outputs)]
-        elif outputs is None:
+        elif not inputs is None and outputs is None:
             self._wacky_layer = inputs
         else:
             self._wacky_layer = []
@@ -135,7 +135,7 @@ class WackyModel(tf.keras.Model):
 
 class WackyDualingModel:
 
-    def __init__(self, model: (WackyModel, tf.keras.model.Model)):
+    def __init__(self, model: (WackyModel, tf.keras.Model)):
 
         self.model_1 = model
         self.model_2 = tf.keras.models.clone_model(model)
@@ -163,7 +163,7 @@ class TargetUpdate:
     def __init__(self, tau: float = 0.15):
         self.tau = tau
 
-    def __call__(self, model: (WackyModel, tf.keras.model.Model), target: (WackyModel, tf.keras.model.Model)):
+    def __call__(self, model: (WackyModel, tf.keras.Model), target: (WackyModel, tf.keras.Model)):
 
         if hasattr(model, 'is_dualing'):
             if model.is_dualing:

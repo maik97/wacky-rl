@@ -16,10 +16,10 @@ from wacky_rl.transform import GAE
 from wacky_rl.trainer import Trainer
 
 
-class TestPPO(AgentCore):
+class PPO(AgentCore):
 
     def __init__(self, env, approximate_contin=False):
-        super(TestPPO, self).__init__()
+        super(PPO, self).__init__()
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
@@ -106,7 +106,7 @@ def train_ppo():
     import gym
     # env = gym.make('CartPole-v0')
     env = gym.make("LunarLanderContinuous-v2")
-    agent = TestPPO(env)
+    agent = PPO(env)
 
     trainer = Trainer(env, agent)
     trainer.n_step_train(5_000_000, train_on_test=False)

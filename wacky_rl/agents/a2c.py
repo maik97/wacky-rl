@@ -16,10 +16,10 @@ from wacky_rl.transform import ExpectedReturnsCalculator
 from wacky_rl.trainer import Trainer
 
 
-class AC2(AgentCore):
+class A2C(AgentCore):
 
     def __init__(self, env, approximate_contin=False):
-        super(AC2, self).__init__()
+        super(A2C, self).__init__()
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
@@ -92,7 +92,7 @@ def train_a2c():
     import gym
     #env = gym.make('CartPole-v0')
     env = gym.make("LunarLanderContinuous-v2")
-    agent = AC2(env)
+    agent = A2C(env)
 
     trainer = Trainer(env, agent)
     trainer.episode_train(300)
