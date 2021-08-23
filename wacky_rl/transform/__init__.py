@@ -14,3 +14,5 @@ from wacky_rl.transform.rewards_transformer import forward_discount_rewards
 from wacky_rl.transform.rewards_transformer import backward_discount_rewards
 from wacky_rl.transform.rewards_transformer import StaticRewardNormalizer
 from wacky_rl.transform.rewards_transformer import DynamicRewardNormalizer
+
+from wacky_rl.transform.running_mean_std import RunningMeanStd

@@ -39,9 +39,14 @@ class WackyModel(tf.keras.Model):
     def pop(self, index):
         self._wacky_layer.pop(index)
 
-    def nature_network(self, num_units=64, activation='relu'):
+    def mlp_network(self, num_units=64, activation='relu', dropout_rate=0.0):
         self.add(layers.Dense(num_units, activation=activation))
+        if dropout_rate > 0.0:
+            self.add(layers.Dropout(dropout_rate))
         self.add(layers.Dense(num_units, activation=activation))
+        if dropout_rate > 0.0:
+            self.add(layers.Dropout(dropout_rate))
+
 
     def compile(
             self,
@@ -94,15 +99,20 @@ class WackyModel(tf.keras.Model):
             if self._wacky_loss is None:
                 self.loss = loss or {}  # Backwards compat.
 
-    def _wacky_forward(self, x):
+    def _wacky_forward(self, x, training):
         if not len(self._wacky_layer) == 0:
-            for l in self._wacky_layer: x = l(x)
+            for l in self._wacky_layer:
+                if not training:
+                    if not isinstance(l, layers.Dropout):
+                        x = l(x)
+                else:
+                    x = l(x)
             return x
         else:
             return super().__call__(inputs=x)
 
     def call(self, inputs, training=False, mask=None, *args, **kwargs):
-        return self._wacky_forward(inputs)
+        return self._wacky_forward(inputs, training)
 
     def train_step(self, inputs, *args, **kwargs):
 
@@ -110,7 +120,7 @@ class WackyModel(tf.keras.Model):
             return super().train_step(inputs)
 
         with tf.GradientTape() as tape:
-            x = self(inputs)
+            x = self(inputs, training=True)
             loss = self._wacky_loss(x, *args, **kwargs)
             #loss = self.loss_alpha * self._wacky_loss(x, *args, **kwargs)
 
