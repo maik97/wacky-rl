@@ -65,7 +65,7 @@ class BufferMemory:
         else:
             self._add_item_to_memory(to_remember, *arg, **kwargs)
 
-        self._lenght += 1
+        self._lenght = len(self._memory[0])
         self._check_maxlen()
 
     def _add_item_to_memory(self, items_to_remember, key=None, index=None):

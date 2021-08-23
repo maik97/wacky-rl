@@ -71,14 +71,16 @@ class PPOActorLoss(losses.WackyLoss):
     def __call__(self, prediction, actions, old_probs, advantage):
 
         dist = prediction
-        actions = tf.reshape(actions, [-1, len(actions)])
+        actions = tf.stop_gradient(tf.reshape(actions, [-1, len(actions)]))
         probs = dist.calc_probs(actions)
         entropies = dist.calc_entropy(actions)
+        old_probs = tf.stop_gradient(tf.reshape(old_probs, tf.shape(probs)))
+        advantage = tf.stop_gradient(advantage)
 
         if dist.num_actions > 1:
             losses = []
             for i in range(dist.num_actions):
-                s_1, s_2 = self._calc_surrogates_alternative(tf.stack(probs[i]), tf.stack(old_probs[i]), advantage)
+                s_1, s_2 = self._calc_surrogates(tf.stack(probs[i]), tf.stack(old_probs[i]), advantage)
                 policy_loss = tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2)))
                 entropy_loss = self.entropy_factor * entropies[i]
                 losses.append(policy_loss + entropy_loss)
@@ -86,20 +88,20 @@ class PPOActorLoss(losses.WackyLoss):
             loss = tf.reduce_mean(tf.stack(losses))
 
         else:
-            s_1, s_2 = self._calc_surrogates_alternative(tf.stack(probs), tf.stack(old_probs), advantage)
+            s_1, s_2 = self._calc_surrogates(tf.stack(probs), tf.stack(old_probs), advantage)
             policy_loss = tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2)))
             entropy_loss = self.entropy_factor * entropies
             loss = policy_loss + entropy_loss
 
         return loss
 
-    def _calc_surrogates(self, log_probs, log_old_probs, advantage):
+    def _calc_surrogates(self, probs, old_probs, advantage):
 
-        log_probs = tf.squeeze(log_probs)
-        log_old_probs = tf.squeeze(log_old_probs)
-        advantage = tf.squeeze(advantage)
+        probs = tf.cast(tf.squeeze(probs), dtype=tf.float32)
+        old_probs = tf.cast(tf.squeeze(old_probs), dtype=tf.float32)
+        advantage = tf.cast(tf.squeeze(advantage), dtype=tf.float32)
 
-        ratios = tf.math.exp(tf.math.log(log_probs + 1e-10) - tf.math.log(log_old_probs + 1e-10))
+        ratios = tf.math.exp(tf.math.log(probs + 1e-10) - tf.math.log(old_probs + 1e-10))
 
         sur_1 = tf.math.multiply_no_nan(ratios, advantage)
         sur_2 = tf.math.multiply_no_nan(tf.clip_by_value(ratios, 1.0 - self.clip_param, 1.0 + self.clip_param), advantage)
@@ -117,7 +119,8 @@ class PPOActorLoss(losses.WackyLoss):
             t = tf.constant(t)
             op = tf.constant(op)
 
-            ratio = tf.math.divide(pb, op)
+            #ratio = tf.math.divide(pb, op)
+            ratio = tf.math.exp(tf.math.log(pb + 1e-10) - tf.math.log(op + 1e-10))
             s1 = tf.math.multiply(ratio, t)
             s2 = tf.math.multiply(tf.clip_by_value(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param), t)
 
