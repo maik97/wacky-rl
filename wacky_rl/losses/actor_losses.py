@@ -77,6 +77,9 @@ class PPOActorLoss(losses.WackyLoss):
         old_probs = tf.stop_gradient(tf.reshape(old_probs, tf.shape(probs)))
         advantage = tf.stop_gradient(advantage)
 
+        probs = tf.clip_by_value(probs, 1e-10, 1.0)
+        old_probs = tf.clip_by_value(old_probs, 1e-10, 1.0)
+
         if dist.num_actions > 1:
             losses = []
             for i in range(dist.num_actions):
