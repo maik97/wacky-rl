@@ -7,7 +7,7 @@ class ActorLoss(losses.WackyLoss):
         super().__init__()
         self.entropy_factor = entropy_factor
 
-    def __call__(self, prediction, actions, advantage):
+    def __call__(self, prediction, actions, advantage, *args, **kwargs):
 
         dist = prediction
         actions = tf.reshape(actions, [-1, len(actions)])
@@ -37,7 +37,7 @@ class SoftActorLoss(losses.WackyLoss):
         super().__init__()
         self.entropy_factor = entropy_factor
 
-    def __call__(self, prediction, actions, q):
+    def __call__(self, prediction, actions, q, *args, **kwargs):
 
         dist = prediction
         actions = tf.reshape(actions, [-1, len(actions)])
@@ -68,7 +68,7 @@ class PPOActorLoss(losses.WackyLoss):
         self.clip_param = clip_param
         self.entropy_factor = entropy_factor
 
-    def __call__(self, prediction, actions, old_probs, advantage):
+    def __call__(self, prediction, actions, old_probs, advantage, *args, **kwargs):
 
         dist = prediction
         actions = tf.stop_gradient(tf.reshape(actions, [-1, len(actions)]))

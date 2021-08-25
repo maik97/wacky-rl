@@ -16,6 +16,6 @@ class MeanSquaredErrorLoss(losses.WackyLoss):
     def __init__(self):
         super().__init__()
 
-    def __call__(self, prediction, returns):
-        target = tf.reshape(returns, [-1,1])
+    def __call__(self, prediction, target):
+        target = tf.reshape(target, [-1,1])
         return tf.reduce_mean(tf.keras.losses.MSE(target, prediction))
