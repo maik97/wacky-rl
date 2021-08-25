@@ -8,3 +8,5 @@ from wacky_rl.losses.q_losses import SoftQLoss
 
 from wacky_rl.losses.val_losses import SoftValueLoss
 from wacky_rl.losses.val_losses import MeanSquaredErrorLoss
+
+from wacky_rl.losses.shared_net_loss import SharedNetLoss
