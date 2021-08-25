@@ -12,7 +12,7 @@ class SharedNetLoss(losses.WackyLoss):
 
     def __call__(self, prediction, loss_args, *args, **kwargs):
 
-        print(prediction)
+        #print(prediction)
 
         loss = 0.0
 
