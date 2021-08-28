@@ -12,12 +12,12 @@ class SharedNetLoss(losses.WackyLoss):
 
     def __call__(self, prediction, loss_args, *args, **kwargs):
 
-        print(prediction)
+        #print(prediction)
 
         loss = 0.0
 
         for i in range(len(self.sub_models)):
-            print(i)
+            #print(i)
             loss = loss + self.alphas[i] * self.sub_models[i].train_step(prediction, *loss_args[i])
 
         return loss
