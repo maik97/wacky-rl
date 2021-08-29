@@ -50,6 +50,7 @@ class Trainer:
                 }
                 )
                 obs = new_obs
+                self.env.render()
 
                 if done:
                     a_loss, c_loss = self.agent.learn()

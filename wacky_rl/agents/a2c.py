@@ -36,7 +36,7 @@ class A2C(AgentCore):
             out_layer = ContinActionLayer(num_actions=num_actions)
 
         self.actor = WackyModel()
-        self.actor.nature_network(256)
+        self.actor.mlp_network(256)
         self.actor.add(out_layer)
         self.actor.compile(
             optimizer=tf.keras.optimizers.RMSprop(3e-4, clipnorm=0.5),
@@ -90,8 +90,8 @@ class A2C(AgentCore):
 def train_a2c():
 
     import gym
-    #env = gym.make('CartPole-v0')
-    env = gym.make("LunarLanderContinuous-v2")
+    env = gym.make('CartPole-v0')
+    #env = gym.make("LunarLanderContinuous-v2")
     agent = A2C(env)
 
     trainer = Trainer(env, agent)
