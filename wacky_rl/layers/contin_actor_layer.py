@@ -3,6 +3,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 from tensorflow.keras import layers
+from tensorflow.python.keras.engine.keras_tensor import KerasTensor
 
 class NormalActionDistributions:
 
@@ -90,15 +91,55 @@ class ContinActionLayer(layers.Layer):
             *args,
             **kwargs
     ):
+
+        #print(self.built)
         super().__init__(**kwargs)
+
+        self.num_actions = num_actions
 
         self._mu_layer = [layers.Dense(1, activation=mu_activation, *args, **kwargs) for _ in range(num_actions)]
         self._sigma_layer = [layers.Dense(1, activation=sigma_activation, *args, **kwargs) for _ in range(num_actions)]
         self.distributions = NormalActionDistributions(num_actions, min_sigma, max_sigma)
 
+        self.is_functional = False
+        self.return_tensors = False
+
+    @property
+    def is_wacky_layer(self):
+        return True
+
+    def __call__(self, *args, **kwargs):
+
+        try:
+            return super().__call__(*args, **kwargs)
+        except:
+            self.last_layer = args[0]
+            self._mu_layer = [l(*args, **kwargs) for l in self._mu_layer]
+            self._sigma_layer = [l(*args, **kwargs) for l in self._sigma_layer]
+            self.return_tensors = True
+            self.is_functional = True
+            return super().__call__(self._mu_layer + self._sigma_layer)
+
     def call(self, inputs, **kwargs):
 
-        mu_list = [mu_l(inputs) for mu_l in self._mu_layer]
-        sigma_list = [sigma_l(inputs) for sigma_l in self._sigma_layer]
+        if not self.is_functional:
+            mu_list = [mu_l(inputs) for mu_l in self._mu_layer]
+            sigma_list = [sigma_l(inputs) for sigma_l in self._sigma_layer]
+        else:
+            out_list = super().call(inputs)
+            mu_list = out_list[:self.num_actions]
+            sigma_list = out_list[-self.num_actions:]
 
+            if self.return_tensors:
+                self.return_tensors = False
+                return self.distributions(mu_list, sigma_list).mean_actions()
+
+
+        #if tf.executing_eagerly():
         return self.distributions(mu_list, sigma_list)
+
+        #if not inputs.op.type == 'Placeholder':
+        #    return self.distributions(mu_list, sigma_list)
+        #else:
+        #    print(mu_list+sigma_list)
+        #    return mu_list+sigma_list

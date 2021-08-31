@@ -17,11 +17,11 @@ class WackyModel(tf.keras.Model):
 
         super().__init__(*args, **kwargs, )
 
-        if inputs is None != outputs is None:
-            raise Exception('Both inputs and outputs must be assigned or None.')
+        #if inputs is None != outputs is None:
+        #    raise Exception('Both inputs and outputs must be assigned or None.')
 
         if not inputs is None and not outputs is None:
-            self._wacky_layer = [tf.keras.Model(inputs, outputs)]
+            self._wacky_layer = self._create_wacky_functional(inputs, outputs)
         elif not inputs is None and outputs is None:
             self._wacky_layer = inputs
         else:
@@ -29,6 +29,20 @@ class WackyModel(tf.keras.Model):
 
         self.model_name = model_name
         self.model_index = model_index
+
+    def _create_wacky_functional(self, inputs, outputs):
+
+        if not isinstance(outputs, list):
+            outputs = [outputs]
+
+        #wacky_outputs = []
+        #for out in outputs:
+        #    if isinstance(out, list):
+        #        wacky_outputs = wacky_outputs + out
+        #    else:
+        #        wacky_outputs.append(out)
+
+        return [tf.keras.Model(inputs, outputs)]
 
     def add(self, layer):
         if isinstance(layer, list):
