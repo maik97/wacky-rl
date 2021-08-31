@@ -11,26 +11,36 @@ class Trainer:
         self.env = env
         self.agent = agent
 
-    def sample_warmup(self, num_episodes):
+    def take_step(self, obs, save_memories=True, render_env=False, act_argmax=False):
+
+        action = self.agent.act(obs, act_argmax=act_argmax, save_memories=save_memories)
+        new_obs, r, done, _ = self.env.step(np.squeeze(action))
+
+        if save_memories:
+            self.agent.memory({
+                    'obs': obs,
+                    'new_obs': new_obs,
+                    'rewards': r,
+                    'dones': float(1 - int(done)),
+                }
+            )
+
+        if render_env:
+            self.env.render()
+
+        return done, new_obs, r
+
+    def sample_warmup(self, num_episodes, render_env=False):
         for e in range(num_episodes):
 
             done = False
             obs = self.env.reset()
 
             while not done:
+                done, obs, _ = self.take_step(obs, save_memories=True, render_env=render_env)
+        self.env.close()
 
-                action = self.agent.act(obs)
-                new_obs, r, done, _ = self.env.step(np.squeeze(action))
-                self.agent.memory({
-                    'obs': obs,
-                    'new_obs': new_obs,
-                    'rewards': r,
-                    'dones': float(1 - int(done)),
-                }
-                )
-                obs = new_obs
-
-    def episode_train(self, num_episodes):
+    def episode_train(self, num_episodes, render_env=False):
         for e in range(num_episodes):
 
             done = False
@@ -38,19 +48,8 @@ class Trainer:
             reward_list = []
 
             while not done:
-
-                action = self.agent.act(obs)
-                new_obs, r, done, _ = self.env.step(np.squeeze(action))
+                done, obs, r = self.take_step(obs, save_memories=True, render_env=render_env)
                 reward_list.append(r)
-                self.agent.memory({
-                    'obs': obs,
-                    'new_obs': new_obs,
-                    'rewards': r,
-                    'dones': float(1 - int(done)),
-                }
-                )
-                obs = new_obs
-                self.env.render()
 
                 if done:
                     a_loss, c_loss = self.agent.learn()
@@ -60,10 +59,13 @@ class Trainer:
                     print('# Loss A:', np.round(np.mean(a_loss), 4))
                     print('# Loss C:', np.round(np.mean(c_loss), 4))
 
+        self.env.close()
+
     def n_step_train(
             self,
             num_steps,
             n_steps = 2048,
+            render_env = False,
             train_on_test = True,
             render_test = True,
     ):
@@ -78,19 +80,8 @@ class Trainer:
             reward_list = []
 
             while not done:
-
-                actions = self.agent.act(obs)
-                new_obs, r, done, _ = self.env.step(np.squeeze(actions))
-
-                self.agent.memory({
-                    'obs': obs,
-                    'new_obs': new_obs,
-                    'rewards': r,
-                    'dones': float(1 - int(done)),
-                }
-                )
+                done, obs, r = self.take_step(obs, save_memories=True, render_env=render_env)
                 reward_list.append(r)
-                obs = new_obs
                 s += 1
 
                 if done:
@@ -112,22 +103,8 @@ class Trainer:
                 if train_on_test or render_test:
                     done = False
                     while not done:
-                        actions = self.agent.act(obs, act_argmax=True, save_memories=train_on_test)
-                        new_obs, r, done, _ = self.env.step(np.squeeze(actions))
-
-                        if train_on_test:
-                            self.agent.memory({
-                                'obs': obs,
-                                'new_obs': new_obs,
-                                'rewards': r,
-                                'dones': float(1 - int(done)),
-                            })
-
-                        if render_test:
-                            self.env.render()
-
+                        done, obs, r = self.take_step(obs, save_memories=True, render_env=render_env, act_argmax=True)
                         reward_list.append(r)
-                        obs = new_obs
 
                         if done:
                             print('# Test R:', np.round(sum(reward_list), 1))
