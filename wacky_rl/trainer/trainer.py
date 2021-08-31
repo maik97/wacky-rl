@@ -103,7 +103,7 @@ class Trainer:
                 if train_on_test or render_test:
                     done = False
                     while not done:
-                        done, obs, r = self.take_step(obs, save_memories=True, render_env=render_env, act_argmax=True)
+                        done, obs, r = self.take_step(obs, save_memories=True, render_env=render_test, act_argmax=True)
                         reward_list.append(r)
 
                         if done:

@@ -1,4 +1,4 @@
-
+from wacky_rl import layers
 
 class AgentCore:
 
@@ -37,3 +37,15 @@ class AgentCore:
     def space_is_discrete(self, gym_space):
         from gym import spaces
         return isinstance(gym_space, spaces.Discrete)
+
+    def make_action_layer(self, env, num_bins=21, num_actions=None, approx_contin=False):
+
+        if num_actions is None:
+            num_actions = int(self.decode_space(env.action_space))
+
+        if self.space_is_discrete(env.action_space):
+            return layers.DiscreteActionLayer(num_bins=num_actions)
+        elif approx_contin:
+            return layers.DiscreteActionLayer(num_bins=num_bins, num_actions=num_actions)
+        else:
+            return layers.ContinActionLayer(num_actions=num_actions)

@@ -97,6 +97,8 @@ class ContinActionLayer(layers.Layer):
         self.distributions = NormalActionDistributions(num_actions, min_sigma, max_sigma)
 
     def call(self, inputs, **kwargs):
+
         mu_list = [mu_l(inputs) for mu_l in self._mu_layer]
         sigma_list = [sigma_l(inputs) for sigma_l in self._sigma_layer]
+
         return self.distributions(mu_list, sigma_list)
