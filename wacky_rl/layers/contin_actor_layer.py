@@ -92,7 +92,6 @@ class ContinActionLayer(layers.Layer):
             **kwargs
     ):
 
-        #print(self.built)
         super().__init__(**kwargs)
 
         self.num_actions = num_actions
@@ -103,10 +102,6 @@ class ContinActionLayer(layers.Layer):
 
         self.is_functional = False
         self.return_tensors = False
-
-    @property
-    def is_wacky_layer(self):
-        return True
 
     def __call__(self, *args, **kwargs):
 
@@ -134,12 +129,5 @@ class ContinActionLayer(layers.Layer):
                 self.return_tensors = False
                 return self.distributions(mu_list, sigma_list).mean_actions()
 
-
-        #if tf.executing_eagerly():
         return self.distributions(mu_list, sigma_list)
 
-        #if not inputs.op.type == 'Placeholder':
-        #    return self.distributions(mu_list, sigma_list)
-        #else:
-        #    print(mu_list+sigma_list)
-        #    return mu_list+sigma_list

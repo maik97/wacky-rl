@@ -15,18 +15,16 @@ class WackyModel(tf.keras.Model):
             **kwargs,
     ):
 
-        super().__init__(*args, **kwargs, )
+        super().__init__(*args, **kwargs)
 
-        #if inputs is None != outputs is None:
-        #    raise Exception('Both inputs and outputs must be assigned or None.')
+        self._wacky_layer = []
 
         if not inputs is None and not outputs is None:
             self._wacky_layer = [tf.keras.Model(inputs, outputs)]
             # TODO: deactivate sequential when using functional api
+
         elif not inputs is None and outputs is None:
-            self._wacky_layer = inputs
-        else:
-            self._wacky_layer = []
+            self.add(inputs)
 
         self.model_name = model_name
         self.model_index = model_index
