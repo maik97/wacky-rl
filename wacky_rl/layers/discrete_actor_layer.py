@@ -94,6 +94,27 @@ class DiscreteActionLayer(layers.Layer):
         self._action_layer = [layers.Dense(num_bins, activation=activation, *args, **kwargs) for _ in range(num_actions)]
         self.distributions = DiscreteActionDistributions(num_bins, num_actions)
 
+        self.is_functional = False
+        self.return_tensors = False
+
+    def __call__(self, *args, **kwargs):
+        try:
+            return super().__call__(*args, **kwargs)
+        except:
+            self.last_layer = args[0]
+            self._action_layer = [l(*args, **kwargs) for l in self._action_layer]
+            self.return_tensors = True
+            self.is_functional = True
+            return super().__call__(self._action_layer)
+
     def call(self, inputs, **kwargs):
-        action_list = [l(inputs) for l in self._action_layer]
+        if not self.is_functional:
+            action_list = [l(inputs) for l in self._action_layer]
+        else:
+            action_list = super().call(inputs)
+
+            if self.return_tensors:
+                self.return_tensors = False
+                return self.distributions(action_list).mean_actions()
+
         return self.distributions(action_list)

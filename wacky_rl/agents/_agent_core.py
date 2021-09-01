@@ -45,18 +45,25 @@ class AgentCore:
             num_actions = int(self.decode_space(env.action_space))
 
         if self.space_is_discrete(env.action_space):
+            self.out_format = int
             return layers.DiscreteActionLayer(num_bins=num_actions)
         elif approx_contin:
+            self.out_format = float
             self.approx_contin = True
             return layers.DiscreteActionLayer(num_bins=num_bins, num_actions=num_actions)
         else:
+            self.out_format = float
             return layers.ContinActionLayer(num_actions=num_actions)
 
 
-    def transform_actions(self, dist, actions, lows=-1.0, highs=1.0, scale=1.0):
+    def transform_actions(self, dist, actions, lows=None, highs=None, scale=1.0):
 
         if self.approx_contin:
             actions = dist.discrete_to_contin(actions)
 
         actions = np.squeeze(actions.numpy()) * scale
-        return np.clip(actions, a_min=lows, a_max=highs)
+
+        if not lows is None or not highs is None:
+            actions = np.clip(actions, a_min=lows, a_max=highs)
+
+        return actions.astype(self.out_format)
