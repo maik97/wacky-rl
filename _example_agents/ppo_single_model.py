@@ -14,11 +14,11 @@ from wacky_rl.trainer import Trainer
 from wacky_rl.transform import RunningMeanStd
 
 
-class PPOSingleModel(AgentCore):
+class PPO(AgentCore):
 
 
     def __init__(self, env, approximate_contin=False):
-        super(PPOSingleModel, self).__init__()
+        super(PPO, self).__init__()
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
@@ -106,7 +106,7 @@ def train_ppo():
     #env = gym.make('CartPole-v0')
     env = gym.make("LunarLanderContinuous-v2")
 
-    agent = PPOSingleModel(env)
+    agent = PPO(env)
 
     trainer = Trainer(env, agent)
     trainer.n_step_train(5_000_000, train_on_test=False)

@@ -49,6 +49,7 @@ class Trainer:
 
             while not done:
                 done, obs, r = self.take_step(obs, save_memories=True, render_env=render_env)
+                #self.env.render()
                 reward_list.append(r)
 
                 if done:
