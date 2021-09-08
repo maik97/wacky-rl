@@ -36,7 +36,7 @@ class PPO(AgentCore):
             out_layer= ContinActionLayer(num_actions=num_actions)
 
         self.actor = WackyModel()
-        self.actor.nature_network(256)
+        self.actor.mlp_network(256)
         self.actor.add(out_layer)
         self.actor.compile(
             optimizer=tf.keras.optimizers.RMSprop(3e-4, clipnorm=0.5),

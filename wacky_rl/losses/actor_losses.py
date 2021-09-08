@@ -60,7 +60,6 @@ class SoftActorLoss(losses.WackyLoss):
 
         return loss
 
-
 class PPOActorLoss(losses.WackyLoss):
 
     def __init__(self, clip_param: float = 0.2, entropy_factor: float = 0.0):
