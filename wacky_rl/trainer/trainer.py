@@ -1,4 +1,5 @@
 import numpy as np
+from collections import deque
 
 class Trainer:
 
@@ -6,20 +7,34 @@ class Trainer:
             self,
             env,
             agent,
+            obs_mem_lenght = 6,
     ):
 
         self.env = env
         self.agent = agent
+        self.obs_mem = deque(maxlen=obs_mem_lenght)
+        self.obs_seq_lenght = obs_mem_lenght
+
 
     def take_step(self, obs, save_memories=True, render_env=False, act_argmax=False):
 
-        action = self.agent.act(obs, act_argmax=act_argmax, save_memories=save_memories)
+        self.obs_mem.append(obs)
+        #print(np.squeeze(np.array(self.obs_mem)))
+        action = self.agent.act(np.squeeze(np.array(self.obs_mem)), act_argmax=act_argmax, save_memories=save_memories)
+        #action = self.agent.act(np.ravel(np.squeeze(np.array(self.obs_mem))), act_argmax=act_argmax, save_memories=save_memories)
         new_obs, r, done, _ = self.env.step(np.squeeze(action))
 
         if save_memories:
             self.agent.memory({
-                    'obs': obs,
-                    'new_obs': new_obs,
+                    'obs': np.squeeze(np.array(self.obs_mem))
+                    #'obs': np.ravel(np.squeeze(np.array(self.obs_mem)))
+                }
+            )
+            self.obs_mem.append(new_obs)
+            self.agent.memory({
+                    #'obs': np.array(self.obs_mem),
+                    'new_obs': np.squeeze(np.array(self.obs_mem)),
+                    #'new_obs': np.ravel(np.squeeze(np.array(self.obs_mem))),
                     'rewards': r,
                     'dones': float(1 - int(done)),
                 }
@@ -46,6 +61,8 @@ class Trainer:
             done = False
             obs = self.env.reset()
             reward_list = []
+            for i in range(self.obs_seq_lenght):
+                self.obs_mem.append(np.zeros(np.shape(obs)))
 
             while not done:
                 done, obs, r = self.take_step(obs, save_memories=True, render_env=render_env)
@@ -79,6 +96,8 @@ class Trainer:
             obs = self.env.reset()
             done = False
             reward_list = []
+            for i in range(self.obs_seq_lenght):
+                self.obs_mem.append(np.zeros(np.shape(obs)))
 
             while not done:
                 done, obs, r = self.take_step(obs, save_memories=True, render_env=render_env)

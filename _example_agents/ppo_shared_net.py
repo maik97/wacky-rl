@@ -49,7 +49,7 @@ class SharedPPO(AgentCore):
 
         # Shared Network for Actor and Critic:
         self.shared_model = WackyModel()
-        #self.shared_model.add(LSTM(32, stateful=False))
+        self.shared_model.add(LSTM(32, stateful=False))
         self.shared_model.mlp_network(256, dropout_rate=0.0)
         self.shared_model.compile(
             optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
@@ -84,13 +84,16 @@ class SharedPPO(AgentCore):
 
         action, old_probs, states, new_states, rewards, dones = self.memory.replay()
 
-       # self.reward_rmstd.update(rewards.numpy())
+        #print(states)
+        #exit()
+
+        #self.reward_rmstd.update(rewards.numpy())
         #rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
-        values = self.critic.predict(self.shared_model.predict(tf.reshape(states, [len(states), -1])))
+        values = self.critic.predict(self.shared_model.predict(tf.reshape(states, [len(states),6, -1,])))
 
-        print(values)
+        #print(values)
 
-        next_value = self.critic.predict(self.shared_model.predict(tf.reshape(new_states[-1], [1,-1])))
+        next_value = self.critic.predict(self.shared_model.predict(tf.reshape(new_states[-1], [1,6,-1])))
         adv, ret = self.advantage_and_returns(rewards, dones, values, next_value)
 
 
@@ -110,7 +113,7 @@ class SharedPPO(AgentCore):
                 adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
 
                 a_loss = self.shared_model.train_step(
-                    tf.reshape(states, [len(states), 1, -1]),
+                    tf.reshape(states, [len(states), 6, -1]),
                     loss_args=[[action, old_probs, adv], [ret]]
                 )
 

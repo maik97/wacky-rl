@@ -44,7 +44,8 @@ class PPO(AgentCore):
         )
 
         # Critic:
-        critic_input = Input(shape=env.observation_space.shape)
+        #critic_input = Input(shape=env.observation_space.shape)
+        critic_input = Input(shape=(None, 48))
         critic_dense = Dense(256, activation='relu')(critic_input)
         critic_dense = Dense(256, activation='relu')(critic_dense)
         critic_out = Dense(1)(critic_dense)
