@@ -50,9 +50,9 @@ class SharedPPO(AgentCore):
         # Shared Network for Actor and Critic:
         self.shared_model = WackyModel()
         #self.shared_model.add(LSTM(32, stateful=False))
-        self.shared_model.mlp_network(64, dropout_rate=0.0)
+        self.shared_model.mlp_network(256, dropout_rate=0.0)
         self.shared_model.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-5, clipnorm=0.5),
+            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
             loss=SharedNetLoss(
                 alphas=[1.0, 0.5],
                 sub_models=[self.actor, self.critic]
@@ -84,8 +84,8 @@ class SharedPPO(AgentCore):
 
         action, old_probs, states, new_states, rewards, dones = self.memory.replay()
 
-        self.reward_rmstd.update(rewards.numpy())
-        rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
+       # self.reward_rmstd.update(rewards.numpy())
+        #rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
         values = self.critic.predict(self.shared_model.predict(tf.reshape(states, [len(states), -1])))
 
         print(values)
@@ -102,7 +102,7 @@ class SharedPPO(AgentCore):
         c_loss_list = [0]
 
         for e in range(10):
-            for mini_batch in self.memory.mini_batches(batch_size=32, num_batches=None, shuffle_batches=False):
+            for mini_batch in self.memory.mini_batches(batch_size=64, num_batches=None, shuffle_batches=False):
 
                 action, old_probs, states, new_states, rewards, dones, adv, ret = mini_batch
 
