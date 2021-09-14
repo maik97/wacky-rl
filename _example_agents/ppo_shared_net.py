@@ -18,12 +18,16 @@ from wacky_rl.trainer import Trainer
 
 from wacky_rl.transform import RunningMeanStd
 
+from wacky_rl.logger import StatusPrinter
+
 
 class SharedPPO(AgentCore):
 
 
-    def __init__(self, env, approximate_contin=False):
+    def __init__(self, env, approximate_contin=False, logger=None):
         super(SharedPPO, self).__init__()
+
+        self.logger = logger
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
@@ -33,7 +37,7 @@ class SharedPPO(AgentCore):
         self.adv_rmstd = RunningMeanStd()
 
         # Actor:
-        self.actor = WackyModel()
+        self.actor = WackyModel(model_name='actor', logger=logger)
         self.actor.add(Dense(32, activation='relu'))
         self.actor.add(self.make_action_layer(env, approx_contin=approximate_contin))
         self.actor.compile(
@@ -42,13 +46,13 @@ class SharedPPO(AgentCore):
         )
 
         # Critic:
-        self.critic = WackyModel()
+        self.critic = WackyModel(model_name='critic', logger=logger)
         self.critic.add(Dense(32, activation='relu'))
         self.critic.add(Dense(1))
         self.critic.compile(optimizer='adam', loss=MeanSquaredErrorLoss())
 
         # Shared Network for Actor and Critic:
-        self.shared_model = WackyModel()
+        self.shared_model = WackyModel(model_name='shared_network', logger=logger)
         self.shared_model.add(LSTM(32, stateful=False))
         self.shared_model.mlp_network(256, dropout_rate=0.0)
         self.shared_model.compile(
@@ -129,7 +133,8 @@ def train_ppo():
     #env = gym.make('CartPole-v0')
     env = gym.make("LunarLanderContinuous-v2")
 
-    agent = SharedPPO(env)
+
+    agent = SharedPPO(env, logger=StatusPrinter('test'))
 
     trainer = Trainer(env, agent)
     trainer.n_step_train(5_000_000, train_on_test=False)

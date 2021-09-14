@@ -15,6 +15,11 @@ class Trainer:
         self.obs_mem = deque(maxlen=obs_mem_lenght)
         self.obs_seq_lenght = obs_mem_lenght
 
+        if hasattr(self.agent, 'logger'):
+            self.logger = self.agent.logger
+        else:
+            self.logger = None
+
 
     def take_step(self, obs, save_memories=True, render_env=False, act_argmax=False):
 
@@ -71,11 +76,15 @@ class Trainer:
 
                 if done:
                     a_loss, c_loss = self.agent.learn()
-                    print()
-                    print('# Episode', e)
-                    print('# Sum R:', np.round(np.sum(reward_list), 1))
-                    print('# Loss A:', np.round(np.mean(a_loss), 4))
-                    print('# Loss C:', np.round(np.mean(c_loss), 4))
+                    if self.logger is None:
+                        print()
+                        print('# Episode', e)
+                        print('# Sum R:', np.round(np.sum(reward_list), 1))
+                        print('# Loss A:', np.round(np.mean(a_loss), 4))
+                        print('# Loss C:', np.round(np.mean(c_loss), 4))
+                    else:
+                        self.logger.log_mean('reward', np.round(np.sum(reward_list)))
+                        self.logger.print_status(e)
 
         self.env.close()
 
@@ -112,11 +121,16 @@ class Trainer:
             if s >= train_after:
                 train_after += n_steps
                 a_loss, c_loss = self.agent.learn()
-                print()
-                print('# Steps', s)
-                print('# Mean R:', np.round(np.mean(episode_reward_list), 1))
-                print('# Loss A:', np.round(np.mean(a_loss), 4))
-                print('# Loss C:', np.round(np.mean(c_loss), 4))
+                if self.logger is None:
+                    print()
+                    print('# steps', s)
+                    print('# Sum R:', np.round(np.sum(reward_list), 1))
+                    print('# Loss A:', np.round(np.mean(a_loss), 4))
+                    print('# Loss C:', np.round(np.mean(c_loss), 4))
+                else:
+                    #self.logger.log_mean('reward', np.round(np.sum(reward_list)))
+                    print('sum reward:', np.round(np.sum(reward_list), 1))
+                    self.logger.print_status(s)
                 episode_reward_list = []
 
                 # Test:
@@ -127,7 +141,7 @@ class Trainer:
                         reward_list.append(r)
 
                         if done:
-                            print('# Test R:', np.round(sum(reward_list), 1))
+                            print('test reward:', np.round(sum(reward_list), 1))
                             obs = self.env.reset()
                             reward_list = []
 

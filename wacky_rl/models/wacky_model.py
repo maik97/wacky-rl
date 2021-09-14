@@ -1,21 +1,27 @@
 import tensorflow as tf
 from tensorflow.keras import layers
+from itertools import count
+
 
 from wacky_rl import losses
 
 class WackyModel(tf.keras.Model):
+    _ids = count(0)
 
     def __init__(
             self,
             inputs = None,
             outputs = None,
-            model_name: str = 'UnnamedWackyModel',
+            model_name: str = 'WackyModel',
             model_index: int = None,
+            logger = None,
             *args,
             **kwargs,
     ):
 
         super().__init__(*args, **kwargs)
+        self.logger = logger
+        self.id = next(self._ids)
 
         self._wacky_layer = []
 
@@ -120,6 +126,8 @@ class WackyModel(tf.keras.Model):
         with tf.GradientTape() as tape:
             x = self(inputs, training=True)
             loss = self._wacky_loss(x, *args, **kwargs)
+            if not self.logger is None:
+                self.logger.log_mean(self.model_name + '_' + str(self.id) + '_loss', loss)
             #loss = self.loss_alpha * self._wacky_loss(x, *args, **kwargs)
 
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
