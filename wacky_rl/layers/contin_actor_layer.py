@@ -7,7 +7,7 @@ from tensorflow.python.keras.engine.keras_tensor import KerasTensor
 
 class NormalActionDistributions:
 
-    def __init__(self, num_actions, min_sigma:float = 0.1, max_sigma: float =1.0):
+    def __init__(self, num_actions, min_sigma:float, max_sigma: float):
 
         self.num_actions = num_actions
         self.min_sigma = min_sigma
@@ -23,14 +23,17 @@ class NormalActionDistributions:
                     self._scale_sigma(sigma_list[i])
                 )
             )
+        #print(mu_list)
+        #print(self.mean_actions())
         return self
 
     def _scale_mu(self, mu):
         return tf.squeeze(mu)
 
     def _scale_sigma(self, sigma):
-        sigma = tf.squeeze(tf.clip_by_value(sigma, 0.0, 1.0))
-        return sigma * (self.max_sigma - self.min_sigma) + self.min_sigma
+        sigma = tf.exp(sigma)
+        return tf.squeeze(tf.clip_by_value(sigma, self.min_sigma, self.max_sigma))
+        #return sigma * (self.max_sigma - self.min_sigma) + self.min_sigma
 
     def sample_actions(self):
         actions = []
@@ -85,14 +88,14 @@ class ContinActionLayer(layers.Layer):
             self,
             num_actions: int,
             mu_activation: str = 'tanh',
-            sigma_activation: str = 'sigmoid',
-            min_sigma: float = 0.1,
-            max_sigma: float = 1.0,
+            sigma_activation: str = 'tanh',
+            min_sigma: float = 0.001,
+            max_sigma: float = 2.0,
             *args,
             **kwargs
     ):
 
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.num_actions = num_actions
 

@@ -120,14 +120,8 @@ class Trainer:
 
             if s >= train_after:
                 train_after += n_steps
-                a_loss, c_loss = self.agent.learn()
-                if self.logger is None:
-                    print()
-                    print('# steps', s)
-                    print('# Sum R:', np.round(np.sum(episode_reward_list), 1))
-                    print('# Loss A:', np.round(np.mean(a_loss), 4))
-                    print('# Loss C:', np.round(np.mean(c_loss), 4))
-                else:
+                self.agent.learn()
+                if not self.logger is None:
                     self.logger.log_mean('sum reward', np.round(np.mean(episode_reward_list)))
                     #print('sum reward:', np.round(np.sum(episode_reward_list), 1))
                     self.logger.print_status(s)

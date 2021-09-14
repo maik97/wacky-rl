@@ -51,21 +51,21 @@ class AgentCore:
         from gym import spaces
         return isinstance(gym_space, spaces.Discrete)
 
-    def make_action_layer(self, env, num_bins=21, num_actions=None, approx_contin=False):
+    def make_action_layer(self, env, num_bins=21, num_actions=None, approx_contin=False, *args, **kwargs):
 
         if num_actions is None:
             num_actions = int(self.decode_space(env.action_space))
 
         if self.space_is_discrete(env.action_space):
             self.out_format = int
-            return layers.DiscreteActionLayer(num_bins=num_actions)
+            return layers.DiscreteActionLayer(num_bins=num_actions, *args, **kwargs)
         elif approx_contin:
             self.out_format = float
             self.approx_contin = True
-            return layers.DiscreteActionLayer(num_bins=num_bins, num_actions=num_actions)
+            return layers.DiscreteActionLayer(num_bins=num_bins, num_actions=num_actions, *args, **kwargs)
         else:
             self.out_format = float
-            return layers.ContinActionLayer(num_actions=num_actions)
+            return layers.ContinActionLayer(num_actions=num_actions, *args, **kwargs)
 
 
     def transform_actions(self, dist, actions, lows=None, highs=None, scale=1.0):
