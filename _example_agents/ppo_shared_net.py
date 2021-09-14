@@ -91,8 +91,8 @@ class SharedPPO(AgentCore):
         #print(states)
         #exit()
 
-        #self.reward_rmstd.update(rewards.numpy())
-        #rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
+        self.reward_rmstd.update(rewards.numpy())
+        rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
         values = self.critic.predict(self.shared_model.predict(tf.reshape(states, [len(states),6, -1,])))
 
         #print(values)
@@ -105,8 +105,7 @@ class SharedPPO(AgentCore):
             self.memory(adv[i], key='adv')
             self.memory(ret[i], key='ret')
 
-        a_loss_list = []
-        c_loss_list = [0]
+        loss = []
 
         for e in range(10):
             for mini_batch in self.memory.mini_batches(batch_size=64, num_batches=None, shuffle_batches=False):
@@ -116,15 +115,15 @@ class SharedPPO(AgentCore):
                 adv = tf.squeeze(adv)
                 adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
 
-                a_loss = self.shared_model.train_step(
+                loss = self.shared_model.train_step(
                     tf.reshape(states, [len(states), 6, -1]),
                     loss_args=[[action, old_probs, adv], [ret]]
                 )
 
-                a_loss_list.append(tf.reduce_mean(a_loss).numpy())
+                loss.append(tf.reduce_mean(loss).numpy())
 
         self.memory.clear()
-        return np.mean(a_loss_list), np.mean(c_loss_list)
+        return np.mean(loss)
 
 
 def train_ppo():
