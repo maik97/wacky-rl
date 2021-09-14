@@ -124,12 +124,12 @@ class Trainer:
                 if self.logger is None:
                     print()
                     print('# steps', s)
-                    print('# Sum R:', np.round(np.sum(reward_list), 1))
+                    print('# Sum R:', np.round(np.sum(episode_reward_list), 1))
                     print('# Loss A:', np.round(np.mean(a_loss), 4))
                     print('# Loss C:', np.round(np.mean(c_loss), 4))
                 else:
-                    #self.logger.log_mean('reward', np.round(np.sum(reward_list)))
-                    print('sum reward:', np.round(np.sum(reward_list), 1))
+                    self.logger.log_mean('sum reward', np.round(np.mean(episode_reward_list)))
+                    #print('sum reward:', np.round(np.sum(episode_reward_list), 1))
                     self.logger.print_status(s)
                 episode_reward_list = []
 
