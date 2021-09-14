@@ -1,6 +1,3 @@
-#import os
-#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
 import numpy as np
 import tensorflow as tf
 import random
@@ -24,7 +21,7 @@ from wacky_rl.logger import StatusPrinter
 class SharedPPO(AgentCore):
 
 
-    def __init__(self, env, approximate_contin=False, logger=None):
+    def __init__(self, env, approximate_contin=True, logger=None):
         super(SharedPPO, self).__init__()
 
         self.logger = logger
@@ -52,16 +49,19 @@ class SharedPPO(AgentCore):
         self.critic = WackyModel(model_name='critic', logger=logger)
         self.critic.add(Dense(64, activation='tanh'))
         self.critic.add(Dense(1))
-        self.critic.compile(optimizer='adam', loss=MeanSquaredErrorLoss())
+        self.critic.compile(
+            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
+            loss=MeanSquaredErrorLoss()
+        )
 
         # Shared Network for Actor and Critic:
         self.shared_model = WackyModel(model_name='shared_network', logger=logger)
         self.shared_model.add(LSTM(32, stateful=False))
         self.shared_model.mlp_network(256, dropout_rate=0.0)
         self.shared_model.compile(
-            optimizer=tf.keras.optimizers.Adam(1e-4, clipnorm=0.5),
+            optimizer=tf.keras.optimizers.Adam(3e-5, clipnorm=0.5),
             loss=SharedNetLoss(
-                alphas=[1.0, 0.05],
+                alphas=[1.0, 0.5],
                 sub_models=[self.actor, self.critic]
             )
         )
@@ -105,8 +105,8 @@ class SharedPPO(AgentCore):
 
         adv, ret = self.advantage_and_returns(rewards, dones, values, next_value)
 
-        self.adv_rmstd.update(adv.numpy())
-        adv = adv / np.sqrt(self.adv_rmstd.var + 1e-8)
+        #self.adv_rmstd.update(adv.numpy())
+        #adv = adv / np.sqrt(self.adv_rmstd.var + 1e-8)
         #adv = (adv - self.adv_rmstd.mean) / np.sqrt(self.adv_rmstd.var + 1e-8)
 
         self.logger.log_mean('values', np.mean(np.append(values, next_value)))
@@ -125,8 +125,8 @@ class SharedPPO(AgentCore):
 
                 action, old_probs, states, new_states, rewards, dones, adv, ret = mini_batch
 
-                #adv = tf.squeeze(adv)
-                #adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
+                adv = tf.squeeze(adv)
+                adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
 
                 loss = self.shared_model.train_step(
                     tf.reshape(states, [len(states), 6, -1]),

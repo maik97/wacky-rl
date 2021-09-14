@@ -89,7 +89,7 @@ class DiscreteActionLayer(layers.Layer):
             *args,
             **kwargs
     ):
-        super().__init__(**kwargs)
+        super().__init__()
 
         self._action_layer = [layers.Dense(num_bins, activation=activation, *args, **kwargs) for _ in range(num_actions)]
         self.distributions = DiscreteActionDistributions(num_bins, num_actions)

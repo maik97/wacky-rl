@@ -28,6 +28,7 @@ class NormalActionDistributions:
         return self
 
     def _scale_mu(self, mu):
+        return tf.squeeze(tf.clip_by_value(mu, -1.0, 1.0))
         return tf.squeeze(mu)
 
     def _scale_sigma(self, sigma):
@@ -87,10 +88,10 @@ class ContinActionLayer(layers.Layer):
     def __init__(
             self,
             num_actions: int,
-            mu_activation: str = 'tanh',
-            sigma_activation: str = 'tanh',
-            min_sigma: float = 0.001,
-            max_sigma: float = 2.0,
+            mu_activation: str = None,
+            sigma_activation: str = None,
+            min_sigma: float = 0.1,
+            max_sigma: float = 1.0,
             *args,
             **kwargs
     ):

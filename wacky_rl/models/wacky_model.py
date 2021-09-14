@@ -44,11 +44,11 @@ class WackyModel(tf.keras.Model):
     def pop(self, index):
         self._wacky_layer.pop(index)
 
-    def mlp_network(self, num_units=64, activation='relu', dropout_rate=0.0):
-        self.add(layers.Dense(num_units, activation=activation))
+    def mlp_network(self, num_units=64, activation='relu', dropout_rate=0.0, *arg, **kwargs):
+        self.add(layers.Dense(num_units, activation=activation, *arg, **kwargs))
         if dropout_rate > 0.0:
             self.add(layers.Dropout(dropout_rate))
-        self.add(layers.Dense(num_units, activation=activation))
+        self.add(layers.Dense(num_units, activation=activation, *arg, **kwargs))
         if dropout_rate > 0.0:
             self.add(layers.Dropout(dropout_rate))
 
