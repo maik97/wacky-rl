@@ -15,6 +15,7 @@ from wacky_rl.losses import PPOActorLoss, MeanSquaredErrorLoss
 from wacky_rl.transform import GAE
 from wacky_rl.trainer import Trainer
 from wacky_rl.logger import StatusPrinter
+from wacky_rl.transform import RunningMeanStd
 
 
 class PPO(AgentCore):
@@ -23,9 +24,11 @@ class PPO(AgentCore):
         super(PPO, self).__init__()
 
         self.approximate_contin = approximate_contin
-        self.memory = BufferMemory()
+        self.memory = BufferMemory(maxlen=2048*10)
         self.advantage_and_returns = GAE()
         self.logger = logger
+
+        self.reward_rmstd = RunningMeanStd()
 
         # Actor:
         num_actions = int(self.decode_space(env.action_space))
@@ -44,7 +47,7 @@ class PPO(AgentCore):
         self.actor.mlp_network(64, kernel_initializer=initializer)
         self.actor.add(out_layer)
         self.actor.compile(
-            optimizer=tf.keras.optimizers.RMSprop(3e-4),
+            optimizer=tf.keras.optimizers.Adam(3e-4),
             loss=PPOActorLoss(entropy_factor=0.0),
         )
 
@@ -86,7 +89,10 @@ class PPO(AgentCore):
 
     def learn(self):
 
+
         action, old_probs, states, new_states, rewards, dones = self.memory.replay()
+        self.reward_rmstd.update(rewards.numpy())
+        rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
         values = self.critic.predict(states)
         next_value = self.critic.predict(tf.expand_dims(new_states[-1], 0))
         adv, ret = self.advantage_and_returns(rewards, dones, values, next_value)
@@ -115,6 +121,8 @@ class PPO(AgentCore):
                 losses.append(tf.reduce_mean(a_loss).numpy()+tf.reduce_mean(c_loss).numpy())
 
         self.memory.clear()
+        #self.memory.pop_array('ret')
+        #self.memory.pop_array('adv')
         return np.mean(losses)
 
     def compare_with_old_policy(self, test_reward):
@@ -142,9 +150,9 @@ class PPO(AgentCore):
 
             self.actor.set_weights(weights)
             self.old_weights = weights
-        '''
+        
 
-        reward_momentum = (self.old_test_reward) / (self.old_test_reward + test_reward)
+        reward_momentum = 0.5#(self.old_test_reward) / (self.old_test_reward + test_reward)
         weights = self.actor.get_weights()
 
         for i in range(len(self.old_weights)):
@@ -156,6 +164,7 @@ class PPO(AgentCore):
         self.logger.log_mean('sum reward old', np.round(self.old_test_reward, 1))
         self.logger.log_mean('sum reward momentum', np.round(reward_momentum, 4))
         self.old_test_reward = self.old_test_reward * 0.9 + test_reward * (1 - 0.9)
+        '''
 
 
 def train_ppo():
