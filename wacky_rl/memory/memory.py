@@ -108,9 +108,12 @@ class BufferMemory:
         else:
             item_indices = range(self.num_arrays)
 
+        shift_by = np.random.randint(low=0, high=batch_size+1)
         batches = []
         for i in item_indices:
-            batches.append(np.array_split(np.copy(self._memory[i]), self._lenght // batch_size))
+            mem_copy = np.copy(self._memory[i])
+            mem_copy = np.roll(mem_copy, shift_by)
+            batches.append(np.array_split(mem_copy, self._lenght // batch_size))
 
         batches = list(zip(*batches))
 

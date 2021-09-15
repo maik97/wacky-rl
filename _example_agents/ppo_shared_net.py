@@ -59,7 +59,7 @@ class SharedPPO(AgentCore):
         self.shared_model.add(LSTM(32, stateful=False))
         self.shared_model.mlp_network(256, dropout_rate=0.0)
         self.shared_model.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-5, clipnorm=0.5),
+            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
             loss=SharedNetLoss(
                 alphas=[1.0, 0.5],
                 sub_models=[self.actor, self.critic]
