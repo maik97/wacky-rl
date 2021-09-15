@@ -41,20 +41,20 @@ class PPO(AgentCore):
 
 
         self.actor = WackyModel(model_name='actor', logger=logger)
-        self.actor.mlp_network(256, kernel_initializer=initializer)
+        self.actor.mlp_network(64, kernel_initializer=initializer)
         self.actor.add(out_layer)
         self.actor.compile(
-            optimizer=tf.keras.optimizers.RMSprop(3e-4, clipnorm=0.5),
+            optimizer=tf.keras.optimizers.RMSprop(3e-4),
             loss=PPOActorLoss(entropy_factor=0.0),
         )
 
         # Critic:
-        #critic_input = Input(shape=env.observation_space.shape)
-        critic_input = Input(shape=(None, 48))
-        critic_dense = Dense(256, activation='relu')(critic_input)
-        critic_dense = Dense(256, activation='relu')(critic_dense)
+        critic_input = Input(shape=env.observation_space.shape)
+        #critic_input = Input(shape=(None, 48))
+        critic_dense = Dense(64, activation='relu')(critic_input)
+        critic_dense = Dense(64, activation='relu')(critic_dense)
         critic_out = Dense(1)(critic_dense)
-        self.critic = Model(inputs=critic_input, outputs=critic_out, model_name='critic', logger=logger)
+        self.critic = WackyModel(inputs=critic_input, outputs=critic_out, model_name='critic', logger=logger)
         self.critic.compile(optimizer='adam', loss=MeanSquaredErrorLoss())
 
     def act(self, inputs, act_argmax=False, save_memories=True):
@@ -99,18 +99,18 @@ class PPO(AgentCore):
 
         losses = []
 
-        for e in range(3):
-            for mini_batch in self.memory.mini_batches(batch_size=32, num_batches=None, shuffle_batches=True):
+        for e in range(10):
+            for mini_batch in self.memory.mini_batches(batch_size=64, num_batches=None, shuffle_batches=True):
 
                 action, old_probs, states, new_states, rewards, dones, adv, ret = mini_batch
 
                 adv = tf.squeeze(adv)
                 adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
 
-                c_loss = self.critic.train_on_batch(states, ret)
+                c_loss = self.critic.train_step(states, ret)
                 a_loss = self.actor.train_step(states, action, old_probs, adv)
 
-                losses.append(tf.reduce_mean(a_loss).numpy()+tf.reduce_mean(a_loss).numpy())
+                losses.append(tf.reduce_mean(a_loss).numpy()+tf.reduce_mean(c_loss).numpy())
 
         self.memory.clear()
         return np.mean(losses)

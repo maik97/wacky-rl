@@ -89,8 +89,8 @@ class ContinActionLayer(layers.Layer):
             self,
             num_actions: int,
             mu_activation: str = None,
-            sigma_activation: str = None,
-            min_sigma: float = 0.1,
+            sigma_activation: str = 'tanh',
+            min_sigma: float = 0.3,
             max_sigma: float = 1.0,
             *args,
             **kwargs
