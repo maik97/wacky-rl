@@ -20,6 +20,8 @@ class Trainer:
         else:
             self.logger = None
 
+        self.old_sum_r = None
+
 
     def take_step(self, obs, save_memories=True, render_env=False, act_argmax=False):
 
@@ -121,10 +123,8 @@ class Trainer:
             if s >= train_after:
                 train_after += n_steps
                 self.agent.learn()
-                if not self.logger is None:
-                    self.logger.log_mean('sum reward', np.round(np.mean(episode_reward_list)))
-                    #print('sum reward:', np.round(np.sum(episode_reward_list), 1))
-                    self.logger.print_status(s)
+                self.logger.log_mean('sum reward', np.round(np.mean(episode_reward_list)))
+                self.agent.compare_with_old_policy(np.mean(episode_reward_list))
                 episode_reward_list = []
 
                 # Test:
@@ -135,9 +135,12 @@ class Trainer:
                         reward_list.append(r)
 
                         if done:
-                            print('test reward:', np.round(sum(reward_list), 1))
+                            self.logger.log_mean('test reward', np.round(sum(reward_list), 1))
                             obs = self.env.reset()
                             reward_list = []
+
+                if not self.logger is None:
+                    self.logger.print_status(s)
 
         self.env.close()
 

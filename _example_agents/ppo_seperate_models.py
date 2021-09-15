@@ -57,6 +57,8 @@ class PPO(AgentCore):
         self.critic = WackyModel(inputs=critic_input, outputs=critic_out, model_name='critic', logger=logger)
         self.critic.compile(optimizer='adam', loss=MeanSquaredErrorLoss())
 
+        self.old_test_reward = None
+
     def act(self, inputs, act_argmax=False, save_memories=True):
 
         inputs = tf.expand_dims(tf.squeeze(inputs), 0)
@@ -114,6 +116,46 @@ class PPO(AgentCore):
 
         self.memory.clear()
         return np.mean(losses)
+
+    def compare_with_old_policy(self, test_reward):
+        if self.old_test_reward is None:
+            self.old_test_reward = test_reward
+            self.old_weights = self.actor.get_weights()
+            return
+        '''
+        if self.old_test_reward > test_reward:
+            weights = self.actor.get_weights()
+
+            for i in range(len(self.old_weights)):
+                weights[i] = self.old_weights[i] * 0.75 + weights[i] * (1 - 0.75 )
+
+            self.actor.set_weights(weights)
+            self.old_weights = weights
+            #self.old_test_reward = self.old_test_reward * 0.95 + test_reward * (1 - 0.95)
+
+        else:
+            #self.old_test_reward = self.old_test_reward * (1 - 0.95) + test_reward * 0.95
+            weights = self.actor.get_weights()
+
+            for i in range(len(self.old_weights)):
+                weights[i] = self.old_weights[i] * (1 - 0.75) + weights[i] * 0.55
+
+            self.actor.set_weights(weights)
+            self.old_weights = weights
+        '''
+
+        reward_momentum = (self.old_test_reward) / (self.old_test_reward + test_reward)
+        weights = self.actor.get_weights()
+
+        for i in range(len(self.old_weights)):
+            weights[i] = self.old_weights[i] * reward_momentum + weights[i] * (1 - reward_momentum)
+
+        self.actor.set_weights(weights)
+        self.old_weights = weights
+
+        self.logger.log_mean('sum reward old', np.round(self.old_test_reward, 1))
+        self.logger.log_mean('sum reward momentum', np.round(reward_momentum, 4))
+        self.old_test_reward = self.old_test_reward * 0.9 + test_reward * (1 - 0.9)
 
 
 def train_ppo():
