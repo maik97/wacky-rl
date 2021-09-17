@@ -13,12 +13,32 @@ from wacky_rl.trainer import Trainer
 
 from wacky_rl.transform import RunningMeanStd
 
+from wacky_rl.logger import StatusPrinter
+
 
 class PPO(AgentCore):
 
 
-    def __init__(self, env, approximate_contin=False):
+    def __init__(
+            self,
+            env,
+            epochs=10,
+            batch_size=64,
+            learning_rate=3e-45,
+            clipnorm=0.5,
+            entropy_factor = 0.0,
+            hidden_units = 256,
+            hidden_activation = 'relu',
+            kernel_initializer: str = 'glorot_uniform',
+            logger=None,
+            approximate_contin=False,
+    ):
         super(PPO, self).__init__()
+
+        self.epochs = epochs
+        self.batch_size = batch_size
+
+        self.logger = logger
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
@@ -27,17 +47,20 @@ class PPO(AgentCore):
         self.reward_rmstd = RunningMeanStd()
 
         input_layer = Input(env.observation_space.shape)
-        hidden_layer = Dense(256, activation='relu')(input_layer)
-        hidden_layer = Dense(256, activation='relu')(hidden_layer)
+        hidden_layer = Dense(hidden_units, activation=hidden_activation, kernel_initializer=kernel_initializer)(input_layer)
+        hidden_layer = Dense(hidden_units, activation=hidden_activation, kernel_initializer=kernel_initializer)(hidden_layer)
 
-        action_layer = self.make_action_layer(env, approx_contin=approximate_contin)(hidden_layer)
-        critic_layer = Dense(1)(hidden_layer)
+        action_layer = self.make_action_layer(env, approx_contin=approximate_contin, kernel_initializer=kernel_initializer)(hidden_layer)
+        critic_layer = Dense(1, kernel_initializer=kernel_initializer)(hidden_layer)
 
         self.model = WackyModel(inputs=input_layer, outputs=[action_layer, critic_layer])
 
-        self.actor_loss = PPOActorLoss(entropy_factor=0.0)
+        self.actor_loss = PPOActorLoss(entropy_factor=entropy_factor)
         self.critic_loss = MeanSquaredErrorLoss()
-        self.optimizer = tf.keras.optimizers.Adam(3e-5, clipnorm=0.5)
+        if clipnorm is None:
+            self.optimizer = tf.keras.optimizers.Adam(learning_rate)
+        else:
+            self.optimizer = tf.keras.optimizers.Adam(learning_rate, clipnorm=clipnorm)
 
     def act(self, inputs, act_argmax=False, save_memories=True):
 
@@ -48,9 +71,16 @@ class PPO(AgentCore):
         else:
             actions = dist.sample_actions()
 
+        probs = dist.calc_probs(actions)
+
+        if act_argmax:
+            self.logger.log_mean('argmax probs', probs)
+        else:
+            self.logger.log_mean('probs', probs)
+
         if save_memories:
             self.memory(actions, key='actions')
-            self.memory(dist.calc_probs(actions), key='probs')
+            self.memory(probs, key='probs')
             self.memory(val, key='val')
 
         return self.transform_actions(dist, actions)
@@ -65,6 +95,10 @@ class PPO(AgentCore):
         _ , next_value = self.model(tf.expand_dims(new_states[-1], 0))
         adv, ret = self.advantage_and_returns(rewards, dones, values, next_value)
 
+        self.logger.log_mean('values', np.mean(np.append(values, next_value)))
+        self.logger.log_mean('adv', np.mean(adv.numpy()))
+        self.logger.log_mean('ret', np.mean(ret.numpy()))
+
 
         for i in range(len(adv)):
             self.memory(adv[i], key='adv')
@@ -72,8 +106,9 @@ class PPO(AgentCore):
 
         a_loss_list = []
         c_loss_list = []
+        sum_loss_list = []
 
-        for e in range(4):
+        for e in range(10):
 
             for mini_batch in self.memory.mini_batches(batch_size=64, num_batches=None, shuffle_batches=False):
 
@@ -91,13 +126,20 @@ class PPO(AgentCore):
 
                     sum_loss = a_loss + 0.5 * c_loss
 
-                self.optimizer.minimize(sum_loss, self.model.trainable_variables, tape=tape)
+                grad = tape.gradient(sum_loss, self.model.trainable_variables)
+                self.optimizer.apply_gradients(zip(grad, self.model.trainable_variables))
 
-                a_loss_list.append(tf.reduce_mean(a_loss).numpy())
-                c_loss_list.append(tf.reduce_mean(c_loss).numpy())
+                #self.optimizer.minimize(sum_loss, self.model.trainable_variables, tape=tape)
+
+                a_loss_list.append(a_loss.numpy())
+                c_loss_list.append(c_loss.numpy())
+                sum_loss_list.append(sum_loss.numpy())
+
+        self.logger.log_mean('actor_loss', np.mean(a_loss_list))
+        self.logger.log_mean('critic_loss', np.mean(c_loss_list))
+        self.logger.log_mean('sum_loss', np.mean(sum_loss_list))
 
         self.memory.clear()
-        return np.mean(a_loss_list), np.mean(c_loss_list)
 
 
 def train_ppo():
@@ -106,7 +148,7 @@ def train_ppo():
     #env = gym.make('CartPole-v0')
     env = gym.make("LunarLanderContinuous-v2")
 
-    agent = PPO(env)
+    agent = PPO(env, logger=StatusPrinter('test'))
 
     trainer = Trainer(env, agent)
     trainer.n_step_train(5_000_000, train_on_test=False)

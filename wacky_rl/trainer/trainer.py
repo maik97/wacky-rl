@@ -123,7 +123,8 @@ class Trainer:
             if s >= train_after:
                 train_after += n_steps
                 self.agent.learn()
-                self.logger.log_mean('sum reward', np.round(np.mean(episode_reward_list)))
+                if not self.logger is None:
+                    self.logger.log_mean('sum reward', np.round(np.mean(episode_reward_list)))
                 self.agent.compare_with_old_policy(np.mean(episode_reward_list))
                 episode_reward_list = []
 
@@ -135,7 +136,8 @@ class Trainer:
                         reward_list.append(r)
 
                         if done:
-                            self.logger.log_mean('test reward', np.round(sum(reward_list), 1))
+                            if not self.logger is None:
+                                self.logger.log_mean('test reward', np.round(sum(reward_list), 1))
                             obs = self.env.reset()
                             reward_list = []
 

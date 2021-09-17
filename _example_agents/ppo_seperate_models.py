@@ -125,7 +125,7 @@ class PPO(AgentCore):
         #self.memory.pop_array('adv')
         return np.mean(losses)
 
-    def compare_with_old_policy(self, test_reward):
+    def test_compare_with_old_policy(self, test_reward):
         if self.old_test_reward is None:
             self.old_test_reward = test_reward
             self.old_weights = self.actor.get_weights()

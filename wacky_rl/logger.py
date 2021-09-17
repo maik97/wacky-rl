@@ -74,10 +74,13 @@ class StatusPrinter:
             else:
                 self.mean_per_episode_dict[tag] = [value]
 
-    def print_status(self, episode):
+    def print_status(self, steps=None, episode=None):
 
         print('\nname:', self.name)
-        print('Episode:', str(episode))
+        if not episode is None:
+            print('episode:', str(episode))
+        if not steps is None:
+            print('steps:', str(steps))
         for key in self.mean_per_episode_dict.keys():
             if len(self.mean_per_episode_dict[key]) > 1:
                 self.mean_per_episode_dict[key] = np.mean(self.mean_per_episode_dict[key])

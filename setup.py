@@ -6,13 +6,13 @@ from setuptools import find_packages
 setup(
   name = 'wacky-rl',
   packages=find_packages(),
-  version = '0.0.5',
+  version = '0.0.6',
   license='MIT',
   description = 'Create custom reinforcement learning agents with wacky-rl.',
   author = 'Maik Schürmann',
   author_email = 'maik.schuermann97@gmail.com',
   url = 'https://github.com/maik97/wacky-rl',
-  download_url = 'https://github.com/maik97/wacky-rl/archive/refs/tags/v0.0.5.tar.gz',
+  download_url = 'https://github.com/maik97/wacky-rl/archive/refs/tags/v0.0.6.tar.gz',
   keywords = ['rl', 'actor_critic', 'reinforcement-learning', 'ppo', 'a2c', 'sac', 'dqn', 'keras', 'tensorflow', 'python'],
   install_requires=[
           'tensorflow',

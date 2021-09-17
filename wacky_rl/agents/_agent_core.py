@@ -67,6 +67,8 @@ class AgentCore:
             self.out_format = float
             return layers.ContinActionLayer(num_actions=num_actions, *args, **kwargs)
 
+    def compare_with_old_policy(self, test_reward):
+        pass
 
     def transform_actions(self, dist, actions, lows=None, highs=None, scale=1.0):
 
