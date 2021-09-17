@@ -24,12 +24,12 @@ class PPO(AgentCore):
             env,
             epochs=10,
             batch_size=64,
-            learning_rate=3e-45,
+            learning_rate=3e-4,
             clipnorm=0.5,
-            entropy_factor = 0.0,
-            hidden_units = 256,
-            hidden_activation = 'relu',
-            kernel_initializer: str = 'glorot_uniform',
+            entropy_factor=0.0,
+            hidden_units=64,
+            hidden_activation='relu',
+            kernel_initializer='glorot_uniform',
             logger=None,
             approximate_contin=False,
     ):
@@ -45,6 +45,8 @@ class PPO(AgentCore):
         self.advantage_and_returns = GAE()
 
         self.reward_rmstd = RunningMeanStd()
+
+        kernel_initializer = tf.keras.initializers.Orthogonal()
 
         input_layer = Input(env.observation_space.shape)
         hidden_layer = Dense(hidden_units, activation=hidden_activation, kernel_initializer=kernel_initializer)(input_layer)
@@ -126,8 +128,9 @@ class PPO(AgentCore):
 
                     sum_loss = a_loss + 0.5 * c_loss
 
-                grad = tape.gradient(sum_loss, self.model.trainable_variables)
-                self.optimizer.apply_gradients(zip(grad, self.model.trainable_variables))
+                if not tf.math.is_nan(sum_loss):
+                    grad = tape.gradient(sum_loss, self.model.trainable_variables)
+                    self.optimizer.apply_gradients(zip(grad, self.model.trainable_variables))
 
                 #self.optimizer.minimize(sum_loss, self.model.trainable_variables, tape=tape)
 
@@ -141,6 +144,13 @@ class PPO(AgentCore):
 
         self.memory.clear()
 
+    def save_model(self, path='test'):
+        self.model.save_weights(path)
+        #self.model.save(path)
+
+    def load_model(self, path='test'):
+        self.model.load_weights(path)
+
 
 def train_ppo():
 
@@ -151,7 +161,18 @@ def train_ppo():
     agent = PPO(env, logger=StatusPrinter('test'))
 
     trainer = Trainer(env, agent)
-    trainer.n_step_train(5_000_000, train_on_test=False)
+    trainer.n_step_train(5_000, train_on_test=False)
+    trainer.agent.save_model()
+    env.close()
+    del trainer
+    del agent
+    del env
+
+    env = gym.make("LunarLanderContinuous-v2")
+    agent = PPO(env, logger=StatusPrinter('test'))
+    trainer = Trainer(env, agent)
+    trainer.agent.load_model()
+    trainer.n_step_train(5_000, train_on_test=False)
     trainer.test(100)
 
 if __name__ == "__main__":
