@@ -25,7 +25,7 @@ class PPO(AgentCore):
         super(PPO, self).__init__()
 
         if logger is None:
-            self.logger = StatusPrinter('test')
+            self.logger = StatusPrinter('ppo')
         else:
             self.logger = logger
 

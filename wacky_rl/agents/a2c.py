@@ -14,12 +14,18 @@ from wacky_rl.layers import DiscreteActionLayer, ContinActionLayer
 from wacky_rl.losses import ActorLoss
 from wacky_rl.transform import ExpectedReturnsCalculator
 from wacky_rl.trainer import Trainer
+from wacky_rl.logger import StatusPrinter
 
 
 class A2C(AgentCore):
 
-    def __init__(self, env, approximate_contin=False):
+    def __init__(self, env, approximate_contin=False, logger=None):
         super(A2C, self).__init__()
+
+        if logger is None:
+            self.logger = StatusPrinter('a2c')
+        else:
+            self.logger = logger
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
