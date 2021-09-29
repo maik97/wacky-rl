@@ -6,7 +6,7 @@ from setuptools import find_packages
 setup(
   name = 'wacky-rl',
   packages=find_packages(),
-  version = '0.0.6',
+  version = '0.0.7',
   license='MIT',
   description = 'Create custom reinforcement learning agents with wacky-rl.',
   author = 'Maik Schürmann',

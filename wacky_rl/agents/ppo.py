@@ -1,112 +1,154 @@
-#import os
-#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
 import numpy as np
 import tensorflow as tf
+import random
 
-from tensorflow.keras.layers import Dense, Input
+from tensorflow.keras.layers import Dense, Input, LSTM
 from tensorflow.keras import Model
 
 from wacky_rl.agents import AgentCore
 from wacky_rl.models import WackyModel
 from wacky_rl.memory import BufferMemory
-from wacky_rl.layers import DiscreteActionLayer, ContinActionLayer
-from wacky_rl.losses import PPOActorLoss
+from wacky_rl.layers import DiscreteActionLayer, ContinActionLayer, RecurrentEncoder
+from wacky_rl.losses import PPOActorLoss, SharedNetLoss, MeanSquaredErrorLoss
 from wacky_rl.transform import GAE
 from wacky_rl.trainer import Trainer
+
+from wacky_rl.transform import RunningMeanStd
+
+from wacky_rl.logger import StatusPrinter
 
 
 class PPO(AgentCore):
 
-    def __init__(self, env, approximate_contin=False):
+
+    def __init__(self, env, approximate_contin=True, logger=None):
         super(PPO, self).__init__()
+
+        if logger is None:
+            self.logger = StatusPrinter('test')
+        else:
+            self.logger = logger
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
         self.advantage_and_returns = GAE()
 
+        self.reward_rmstd = RunningMeanStd()
+        self.adv_rmstd = RunningMeanStd()
+
+        initializer = tf.keras.initializers.Orthogonal()
+
+
         # Actor:
-        num_actions = int(self.decode_space(env.action_space))
-
-        if self.space_is_discrete(env.action_space):
-            out_layer = DiscreteActionLayer(num_bins=num_actions)
-        elif self.approximate_contin:
-            out_layer= DiscreteActionLayer(num_bins=21, num_actions=num_actions)
-        else:
-            out_layer= ContinActionLayer(num_actions=num_actions)
-
-        self.actor = WackyModel()
-        self.actor.nature_network(256)
-        self.actor.add(out_layer)
+        self.actor = WackyModel(model_name='actor', logger=logger)
+        self.actor.add(Dense(64, activation='tanh', kernel_initializer=initializer))
+        self.actor.add(self.make_action_layer(env, approx_contin=approximate_contin, kernel_initializer=initializer))
         self.actor.compile(
-            optimizer=tf.keras.optimizers.RMSprop(3e-4, clipnorm=0.5),
-            loss=PPOActorLoss(entropy_factor=0.001),
+            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
+            loss=PPOActorLoss(entropy_factor=0.0),
         )
 
         # Critic:
-        critic_input = Input(shape=env.observation_space.shape)
-        critic_dense = Dense(256, activation='relu')(critic_input)
-        critic_dense = Dense(256, activation='relu')(critic_dense)
-        critic_out = Dense(1)(critic_dense)
-        self.critic = Model(inputs=critic_input, outputs=critic_out)
-        self.critic.compile(optimizer='adam', loss='mse')
+        self.critic = WackyModel(model_name='critic', logger=logger)
+        self.critic.add(Dense(64, activation='tanh'))
+        self.critic.add(Dense(1))
+        self.critic.compile(
+            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
+            loss=MeanSquaredErrorLoss()
+        )
+
+        # Shared Network for Actor and Critic:
+        self.shared_model = WackyModel(model_name='shared_network', logger=logger)
+        self.shared_model.mlp_network(256, dropout_rate=0.0)
+        self.shared_model.compile(
+            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
+            loss=SharedNetLoss(
+                alphas=[1.0, 0.5],
+                sub_models=[self.actor, self.critic]
+            )
+        )
 
     def act(self, inputs, act_argmax=False, save_memories=True):
 
-        inputs = tf.expand_dims(tf.squeeze(inputs), 0)
-        dist = self.actor(inputs, act_argmax=True)
+        x = self.shared_model(tf.expand_dims(inputs, 0))
+        dist = self.actor(x)
 
         if act_argmax:
             actions = dist.mean_actions()
         else:
             actions = dist.sample_actions()
 
+        #print(actions)
+
+        probs = dist.calc_probs(actions)
+
+        if act_argmax:
+            self.logger.log_mean('argmax probs', probs)
+        else:
+            self.logger.log_mean('probs', probs)
+
         if save_memories:
             self.memory(actions, key='actions')
-            self.memory(dist.calc_probs(actions), key='probs')
+            self.memory(probs, key='probs')
 
         if self.approximate_contin:
             return dist.discrete_to_contin(actions).numpy()
+
         return actions.numpy()
 
     def learn(self):
 
         action, old_probs, states, new_states, rewards, dones = self.memory.replay()
-        values = self.critic.predict(states)
-        next_value = self.critic.predict(tf.expand_dims(new_states[-1], 0))
+
+        self.reward_rmstd.update(rewards.numpy())
+        rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
+        values = self.critic.predict(self.shared_model.predict(tf.reshape(states, [len(states), -1])))
+        next_value = self.critic.predict(self.shared_model.predict(tf.reshape(new_states[-1], [1,-1])))
+
         adv, ret = self.advantage_and_returns(rewards, dones, values, next_value)
+
+        #self.adv_rmstd.update(adv.numpy())
+        #adv = adv / np.sqrt(self.adv_rmstd.var + 1e-8)
+        #adv = (adv - self.adv_rmstd.mean) / np.sqrt(self.adv_rmstd.var + 1e-8)
+
+        self.logger.log_mean('values', np.mean(np.append(values, next_value)))
+        self.logger.log_mean('adv', np.mean(adv.numpy()))
+        self.logger.log_mean('ret', np.mean(ret.numpy()))
+
 
         for i in range(len(adv)):
             self.memory(adv[i], key='adv')
             self.memory(ret[i], key='ret')
 
-        a_loss_list = []
-        c_loss_list = []
+        losses = []
 
-        for e in range(3):
-            for mini_batch in self.memory.mini_batches(batch_size=32, num_batches=None, shuffle_batches=True):
+        for e in range(10):
+            for mini_batch in self.memory.mini_batches(batch_size=64, num_batches=None, shuffle_batches=False):
 
                 action, old_probs, states, new_states, rewards, dones, adv, ret = mini_batch
 
                 adv = tf.squeeze(adv)
                 adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
 
-                c_loss = self.critic.train_on_batch(states, ret)
-                a_loss = self.actor.train_step(states, action, old_probs, adv)
+                loss = self.shared_model.train_step(
+                    tf.reshape(states, [len(states), -1]),
+                    loss_args=[[action, old_probs, adv], [ret]]
+                )
 
-                a_loss_list.append(tf.reduce_mean(a_loss).numpy())
-                c_loss_list.append(tf.reduce_mean(c_loss).numpy())
+                losses.append(tf.reduce_mean(loss).numpy())
 
         self.memory.clear()
-        return np.mean(a_loss_list), np.mean(c_loss_list)
+        return np.mean(losses)
 
 
 def train_ppo():
 
     import gym
-    # env = gym.make('CartPole-v0')
+    #env = gym.make('CartPole-v0')
     env = gym.make("LunarLanderContinuous-v2")
-    agent = PPO(env)
+
+
+    agent = PPO(env, logger=StatusPrinter('test'))
 
     trainer = Trainer(env, agent)
     trainer.n_step_train(5_000_000, train_on_test=False)

@@ -95,8 +95,8 @@ class Trainer:
             num_steps,
             n_steps = 2048,
             render_env = False,
-            train_on_test = True,
-            render_test = True,
+            train_on_test = False,
+            render_test = False,
     ):
 
         train_after = n_steps
