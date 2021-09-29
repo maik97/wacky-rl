@@ -73,9 +73,11 @@ import gym
 from wacky_rl.agents import PPO
 from wacky_rl.trainer import Trainer
 
-# env = gym.make('CartPole-v0')
+#env = gym.make('CartPole-v0')
+#agent = PPO(env)
+
 env = gym.make("LunarLanderContinuous-v2")
-agent = PPO(env)
+agent = PPO(env, standardize_rewards=True)
 
 trainer = Trainer(env, agent)
 trainer.n_step_train(5_000_000)
