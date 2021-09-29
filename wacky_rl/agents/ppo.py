@@ -1,84 +1,100 @@
 import numpy as np
 import tensorflow as tf
-import random
 
-from tensorflow.keras.layers import Dense, Input, LSTM
+from tensorflow.keras.layers import Dense, Input
 from tensorflow.keras import Model
 
 from wacky_rl.agents import AgentCore
 from wacky_rl.models import WackyModel
 from wacky_rl.memory import BufferMemory
-from wacky_rl.layers import DiscreteActionLayer, ContinActionLayer, RecurrentEncoder
-from wacky_rl.losses import PPOActorLoss, SharedNetLoss, MeanSquaredErrorLoss
+from wacky_rl.layers import DiscreteActionLayer, ContinActionLayer
+from wacky_rl.losses import PPOActorLoss, MeanSquaredErrorLoss
 from wacky_rl.transform import GAE
 from wacky_rl.trainer import Trainer
-
-from wacky_rl.transform import RunningMeanStd
-
 from wacky_rl.logger import StatusPrinter
+from wacky_rl.transform import RunningMeanStd
 
 
 class PPO(AgentCore):
 
-
-    def __init__(self, env, approximate_contin=True, logger=None):
+    def __init__(
+            self,
+            env,
+            learning_rate=3e-5,
+            entropy_factor=0.0,
+            clipnorm=0.5,
+            batch_size=64,
+            epochs=10,
+            approximate_contin=False,
+            logger=None,
+            standardize_rewards=False
+    ):
         super(PPO, self).__init__()
 
-        if logger is None:
-            self.logger = StatusPrinter('ppo')
-        else:
-            self.logger = logger
+        self.batch_size = batch_size
+        self.epochs = epochs
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
         self.advantage_and_returns = GAE()
 
+        if logger is None:
+            logger = StatusPrinter('ppo')
+        self.logger = logger
+
+        self.standardize_rewards = standardize_rewards
         self.reward_rmstd = RunningMeanStd()
-        self.adv_rmstd = RunningMeanStd()
+
+        # Actor:
+        num_actions = int(self.decode_space(env.action_space))
 
         initializer = tf.keras.initializers.Orthogonal()
 
+        if self.space_is_discrete(env.action_space):
+            out_layer = DiscreteActionLayer(num_bins=num_actions, kernel_initializer=initializer)
+            self.disct_actor = True
+        elif self.approximate_contin:
+            out_layer = DiscreteActionLayer(num_bins=21, num_actions=num_actions, kernel_initializer=initializer)
+            self.disct_actor = True
+        else:
+            out_layer = ContinActionLayer(num_actions=num_actions, kernel_initializer=initializer)
 
-        # Actor:
         self.actor = WackyModel(model_name='actor', logger=logger)
-        self.actor.add(Dense(64, activation='tanh', kernel_initializer=initializer))
-        self.actor.add(self.make_action_layer(env, approx_contin=approximate_contin, kernel_initializer=initializer))
-        self.actor.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
-            loss=PPOActorLoss(entropy_factor=0.0),
-        )
+        self.actor.mlp_network(64, kernel_initializer=initializer)
+        self.actor.add(out_layer)
+
+        if clipnorm is None:
+            self.actor.compile(
+                optimizer=tf.keras.optimizers.RMSprop(learning_rate),
+                loss=PPOActorLoss(entropy_factor=entropy_factor),
+            )
+
+        else:
+            self.actor.compile(
+                optimizer=tf.keras.optimizers.RMSprop(learning_rate, clipnorm=clipnorm),
+                loss=PPOActorLoss(entropy_factor=entropy_factor),
+            )
 
         # Critic:
-        self.critic = WackyModel(model_name='critic', logger=logger)
-        self.critic.add(Dense(64, activation='tanh'))
-        self.critic.add(Dense(1))
-        self.critic.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
-            loss=MeanSquaredErrorLoss()
-        )
+        critic_input = Input(shape=env.observation_space.shape)
+        critic_dense = Dense(64, activation='relu')(critic_input)
+        critic_dense = Dense(64, activation='relu')(critic_dense)
+        critic_out = Dense(1)(critic_dense)
+        self.critic = Model(inputs=critic_input, outputs=critic_out)  # , model_name='critic', logger=logger)
+        self.critic.compile(optimizer='adam', loss='mse')
 
-        # Shared Network for Actor and Critic:
-        self.shared_model = WackyModel(model_name='shared_network', logger=logger)
-        self.shared_model.mlp_network(256, dropout_rate=0.0)
-        self.shared_model.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
-            loss=SharedNetLoss(
-                alphas=[1.0, 0.5],
-                sub_models=[self.actor, self.critic]
-            )
-        )
+        self.old_test_reward = None
 
     def act(self, inputs, act_argmax=False, save_memories=True):
 
-        x = self.shared_model(tf.expand_dims(inputs, 0))
-        dist = self.actor(x)
+        inputs = tf.expand_dims(tf.squeeze(inputs), 0)
+        dist = self.actor(inputs, act_argmax=True)
 
-        if act_argmax:
+        greedy = np.random.random(1)
+        if act_argmax or greedy > 0.5:
             actions = dist.mean_actions()
         else:
             actions = dist.sample_actions()
-
-        #print(actions)
 
         probs = dist.calc_probs(actions)
 
@@ -93,66 +109,59 @@ class PPO(AgentCore):
 
         if self.approximate_contin:
             return dist.discrete_to_contin(actions).numpy()
-
         return actions.numpy()
 
     def learn(self):
 
         action, old_probs, states, new_states, rewards, dones = self.memory.replay()
 
-        self.reward_rmstd.update(rewards.numpy())
-        rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
-        values = self.critic.predict(self.shared_model.predict(tf.reshape(states, [len(states), -1])))
-        next_value = self.critic.predict(self.shared_model.predict(tf.reshape(new_states[-1], [1,-1])))
+        if self.standardize_rewards:
+            self.reward_rmstd.update(rewards.numpy())
+            rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
 
+        values = self.critic.predict(states)
+        next_value = self.critic.predict(tf.expand_dims(new_states[-1], 0))
         adv, ret = self.advantage_and_returns(rewards, dones, values, next_value)
-
-        #self.adv_rmstd.update(adv.numpy())
-        #adv = adv / np.sqrt(self.adv_rmstd.var + 1e-8)
-        #adv = (adv - self.adv_rmstd.mean) / np.sqrt(self.adv_rmstd.var + 1e-8)
 
         self.logger.log_mean('values', np.mean(np.append(values, next_value)))
         self.logger.log_mean('adv', np.mean(adv.numpy()))
         self.logger.log_mean('ret', np.mean(ret.numpy()))
 
-
         for i in range(len(adv)):
             self.memory(adv[i], key='adv')
             self.memory(ret[i], key='ret')
 
+        hist = self.critic.fit(states, ret, verbose=0, epochs=self.epochs, batch_size=self.batch_size)
+        c_loss = hist.history['loss']
+        self.logger.log_mean('critic loss', np.mean(c_loss))
+
         losses = []
-
-        for e in range(10):
-            for mini_batch in self.memory.mini_batches(batch_size=64, num_batches=None, shuffle_batches=False):
-
+        for e in range(self.epochs):
+            for mini_batch in self.memory.mini_batches(batch_size=self.batch_size, num_batches=None,
+                                                       shuffle_batches=True):
                 action, old_probs, states, new_states, rewards, dones, adv, ret = mini_batch
 
                 adv = tf.squeeze(adv)
                 adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
 
-                loss = self.shared_model.train_step(
-                    tf.reshape(states, [len(states), -1]),
-                    loss_args=[[action, old_probs, adv], [ret]]
-                )
-
-                losses.append(tf.reduce_mean(loss).numpy())
+                a_loss = self.actor.train_step(states, action, old_probs, adv)
+                losses.append(tf.reduce_mean(a_loss).numpy())
 
         self.memory.clear()
         return np.mean(losses)
 
 
+
 def train_ppo():
-
     import gym
-    #env = gym.make('CartPole-v0')
+    # env = gym.make('CartPole-v0')
     env = gym.make("LunarLanderContinuous-v2")
-
-
-    agent = PPO(env, logger=StatusPrinter('test'))
+    agent = PPO(env)
 
     trainer = Trainer(env, agent)
     trainer.n_step_train(5_000_000, train_on_test=False)
     trainer.test(100)
+
 
 if __name__ == "__main__":
     train_ppo()

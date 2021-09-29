@@ -20,14 +20,32 @@ from wacky_rl.transform import RunningMeanStd
 
 class PPO(AgentCore):
 
-    def __init__(self, env, approximate_contin=False, logger=None):
+    def __init__(
+            self,
+            env,
+            learning_rate=3e-5,
+            entropy_factor=0.0,
+            clipnorm=0.5,
+            batch_size=64,
+            epochs=10,
+            approximate_contin=False,
+            logger=None,
+            standardize_rewards=False
+    ):
         super(PPO, self).__init__()
 
+        self.batch_size = batch_size
+        self.epochs = epochs
+
         self.approximate_contin = approximate_contin
-        self.memory = BufferMemory(maxlen=2048*10)
+        self.memory = BufferMemory()
         self.advantage_and_returns = GAE()
+
+        if logger is None:
+            logger = StatusPrinter('ppo')
         self.logger = logger
 
+        self.standardize_rewards = standardize_rewards
         self.reward_rmstd = RunningMeanStd()
 
         # Actor:
@@ -37,8 +55,10 @@ class PPO(AgentCore):
 
         if self.space_is_discrete(env.action_space):
             out_layer = DiscreteActionLayer(num_bins=num_actions, kernel_initializer=initializer)
+            self.disct_actor = True
         elif self.approximate_contin:
             out_layer= DiscreteActionLayer(num_bins=21, num_actions=num_actions, kernel_initializer=initializer)
+            self.disct_actor = True
         else:
             out_layer= ContinActionLayer(num_actions=num_actions, kernel_initializer=initializer)
 
@@ -46,19 +66,26 @@ class PPO(AgentCore):
         self.actor = WackyModel(model_name='actor', logger=logger)
         self.actor.mlp_network(64, kernel_initializer=initializer)
         self.actor.add(out_layer)
-        self.actor.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-4),
-            loss=PPOActorLoss(entropy_factor=0.0),
-        )
+
+        if clipnorm is None:
+            self.actor.compile(
+                optimizer=tf.keras.optimizers.RMSprop(learning_rate),
+                loss=PPOActorLoss(entropy_factor=entropy_factor),
+            )
+
+        else:
+            self.actor.compile(
+                optimizer=tf.keras.optimizers.RMSprop(learning_rate, clipnorm=clipnorm),
+                loss=PPOActorLoss(entropy_factor=entropy_factor),
+            )
 
         # Critic:
         critic_input = Input(shape=env.observation_space.shape)
-        #critic_input = Input(shape=(None, 48))
         critic_dense = Dense(64, activation='relu')(critic_input)
         critic_dense = Dense(64, activation='relu')(critic_dense)
         critic_out = Dense(1)(critic_dense)
-        self.critic = WackyModel(inputs=critic_input, outputs=critic_out, model_name='critic', logger=logger)
-        self.critic.compile(optimizer='adam', loss=MeanSquaredErrorLoss())
+        self.critic = Model(inputs=critic_input, outputs=critic_out)#, model_name='critic', logger=logger)
+        self.critic.compile(optimizer='adam', loss='mse')
 
         self.old_test_reward = None
 
@@ -67,7 +94,9 @@ class PPO(AgentCore):
         inputs = tf.expand_dims(tf.squeeze(inputs), 0)
         dist = self.actor(inputs, act_argmax=True)
 
-        if act_argmax:
+        greedy = np.random.random(1)
+        #print(greedy)
+        if act_argmax or greedy>0.5:
             actions = dist.mean_actions()
         else:
             actions = dist.sample_actions()
@@ -91,8 +120,11 @@ class PPO(AgentCore):
 
 
         action, old_probs, states, new_states, rewards, dones = self.memory.replay()
-        self.reward_rmstd.update(rewards.numpy())
-        rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
+
+        if self.standardize_rewards:
+            self.reward_rmstd.update(rewards.numpy())
+            rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
+
         values = self.critic.predict(states)
         next_value = self.critic.predict(tf.expand_dims(new_states[-1], 0))
         adv, ret = self.advantage_and_returns(rewards, dones, values, next_value)
@@ -105,20 +137,25 @@ class PPO(AgentCore):
             self.memory(adv[i], key='adv')
             self.memory(ret[i], key='ret')
 
-        losses = []
 
-        for e in range(10):
-            for mini_batch in self.memory.mini_batches(batch_size=64, num_batches=None, shuffle_batches=True):
+        hist = self.critic.fit(states, ret, verbose=0, epochs=self.epochs, batch_size=self.batch_size)
+        c_loss = hist.history['loss']
+        self.logger.log_mean('critic loss', np.mean(c_loss))
+
+        losses = []
+        for e in range(self.epochs):
+            for mini_batch in self.memory.mini_batches(batch_size=self.batch_size, num_batches=None, shuffle_batches=True):
 
                 action, old_probs, states, new_states, rewards, dones, adv, ret = mini_batch
 
                 adv = tf.squeeze(adv)
                 adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
 
-                c_loss = self.critic.train_step(states, ret)
+
                 a_loss = self.actor.train_step(states, action, old_probs, adv)
 
-                losses.append(tf.reduce_mean(a_loss).numpy()+tf.reduce_mean(c_loss).numpy())
+                #losses.append(tf.reduce_mean(a_loss).numpy()+tf.reduce_mean(c_loss).numpy())
+                losses.append(tf.reduce_mean(a_loss).numpy())
 
         self.memory.clear()
         #self.memory.pop_array('ret')
@@ -170,9 +207,9 @@ class PPO(AgentCore):
 def train_ppo():
 
     import gym
-    # env = gym.make('CartPole-v0')
+    #env = gym.make('CartPole-v0')
     env = gym.make("LunarLanderContinuous-v2")
-    agent = PPO(env,  logger=StatusPrinter('test'))
+    agent = PPO(env)
 
     trainer = Trainer(env, agent)
     trainer.n_step_train(5_000_000, train_on_test=False)

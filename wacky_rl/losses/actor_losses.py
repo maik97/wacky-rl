@@ -70,11 +70,11 @@ class PPOActorLoss(losses.WackyLoss):
     def __call__(self, prediction, actions, old_probs, advantage, *args, **kwargs):
 
         dist = prediction
-        actions = tf.stop_gradient(tf.reshape(actions, [-1, len(actions)]))
+        actions = tf.reshape(actions, [-1, len(actions)])
         probs = dist.calc_probs(actions)
         entropies = dist.calc_entropy(actions)
-        old_probs = tf.stop_gradient(tf.reshape(old_probs, tf.shape(probs)))
-        advantage = tf.stop_gradient(advantage)
+        old_probs = tf.reshape(old_probs, tf.shape(probs))
+        advantage = tf.squeeze(advantage)
 
         probs = tf.clip_by_value(probs, 1e-10, 1.0)
         old_probs = tf.clip_by_value(old_probs, 1e-10, 1.0)
@@ -83,15 +83,15 @@ class PPOActorLoss(losses.WackyLoss):
             losses = []
             for i in range(dist.num_actions):
                 s_1, s_2 = self._calc_surrogates(tf.stack(probs[i]), tf.stack(old_probs[i]), advantage)
-                policy_loss = tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2)))
+                policy_loss = tf.reduce_sum(tf.math.negative(tf.math.minimum(s_1, s_2)))
                 entropy_loss = self.entropy_factor * entropies[i]
                 losses.append(policy_loss + entropy_loss)
 
-            loss = tf.reduce_mean(tf.stack(losses))
+            loss = tf.reduce_sum(tf.stack(losses))
 
         else:
             s_1, s_2 = self._calc_surrogates(tf.stack(probs), tf.stack(old_probs), advantage)
-            policy_loss = tf.reduce_mean(tf.math.negative(tf.math.minimum(s_1, s_2)))
+            policy_loss = tf.reduce_sum(tf.math.negative(tf.math.minimum(s_1, s_2)))
             entropy_loss = self.entropy_factor * entropies
             loss = policy_loss + entropy_loss
 

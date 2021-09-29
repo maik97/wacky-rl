@@ -21,10 +21,23 @@ from wacky_rl.logger import StatusPrinter
 class SharedPPO(AgentCore):
 
 
-    def __init__(self, env, approximate_contin=True, logger=None):
+    def __init__(
+            self,
+            env,
+            learning_rate=3e-4,
+            clipnorm=0.5,
+            approximate_contin=False,
+            logger=None,
+            standarize_rewards=False
+    ):
         super(SharedPPO, self).__init__()
 
-        self.logger = logger
+        if logger is None:
+            self.logger = StatusPrinter('ppo')
+        else:
+            self.logger = logger
+
+        self.standarize_rewards = standarize_rewards
 
         self.approximate_contin = approximate_contin
         self.memory = BufferMemory()
@@ -38,28 +51,27 @@ class SharedPPO(AgentCore):
 
         # Actor:
         self.actor = WackyModel(model_name='actor', logger=logger)
-        self.actor.add(Dense(64, activation='tanh', kernel_initializer=initializer))
+        self.actor.add(Dense(16, activation='tanh', kernel_initializer=initializer))
         self.actor.add(self.make_action_layer(env, approx_contin=approximate_contin, kernel_initializer=initializer))
         self.actor.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
+            optimizer=tf.keras.optimizers.Adam(learning_rate),
             loss=PPOActorLoss(entropy_factor=0.0),
         )
 
         # Critic:
         self.critic = WackyModel(model_name='critic', logger=logger)
-        self.critic.add(Dense(64, activation='tanh'))
+        self.critic.add(Dense(16, activation='tanh'))
         self.critic.add(Dense(1))
         self.critic.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
+            optimizer=tf.keras.optimizers.Adam(learning_rate),
             loss=MeanSquaredErrorLoss()
         )
 
         # Shared Network for Actor and Critic:
         self.shared_model = WackyModel(model_name='shared_network', logger=logger)
-        self.shared_model.add(LSTM(32, stateful=False))
-        self.shared_model.mlp_network(256, dropout_rate=0.0)
+        self.shared_model.mlp_network(64, dropout_rate=0.0)
         self.shared_model.compile(
-            optimizer=tf.keras.optimizers.Adam(3e-4, clipnorm=0.5),
+            optimizer=tf.keras.optimizers.Adam(learning_rate),
             loss=SharedNetLoss(
                 alphas=[1.0, 0.5],
                 sub_models=[self.actor, self.critic]
@@ -98,10 +110,12 @@ class SharedPPO(AgentCore):
 
         action, old_probs, states, new_states, rewards, dones = self.memory.replay()
 
-        self.reward_rmstd.update(rewards.numpy())
-        rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
-        values = self.critic.predict(self.shared_model.predict(tf.reshape(states, [len(states),6, -1,])))
-        next_value = self.critic.predict(self.shared_model.predict(tf.reshape(new_states[-1], [1,6,-1])))
+        if self.standarize_rewards:
+            self.reward_rmstd.update(rewards.numpy())
+            rewards = rewards / np.sqrt(self.reward_rmstd.var + 1e-8)
+
+        values = self.critic.predict(self.shared_model.predict(tf.reshape(states, [len(states), -1])))
+        next_value = self.critic.predict(self.shared_model.predict(tf.reshape(new_states[-1], [1,-1])))
 
         adv, ret = self.advantage_and_returns(rewards, dones, values, next_value)
 
@@ -129,7 +143,7 @@ class SharedPPO(AgentCore):
                 adv = (adv - tf.reduce_mean(adv)) / (tf.math.reduce_std(adv) + 1e-8)
 
                 loss = self.shared_model.train_step(
-                    tf.reshape(states, [len(states), 6, -1]),
+                    tf.reshape(states, [len(states), -1]),
                     loss_args=[[action, old_probs, adv], [ret]]
                 )
 

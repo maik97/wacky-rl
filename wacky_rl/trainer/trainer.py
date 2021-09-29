@@ -27,8 +27,8 @@ class Trainer:
 
         self.obs_mem.append(obs)
         #print(np.squeeze(np.array(self.obs_mem)))
-        #action = self.agent.act(np.squeeze(np.array(self.obs_mem)), act_argmax=act_argmax, save_memories=save_memories)
-        action = self.agent.act(np.ravel(np.squeeze(np.array(self.obs_mem))), act_argmax=act_argmax, save_memories=save_memories)
+        action = self.agent.act(np.squeeze(np.array(self.obs_mem)), act_argmax=act_argmax, save_memories=save_memories)
+        #action = self.agent.act(np.ravel(np.squeeze(np.array(self.obs_mem))), act_argmax=act_argmax, save_memories=save_memories)
         new_obs, r, done, _ = self.env.step(np.squeeze(action))
 
         if save_memories:

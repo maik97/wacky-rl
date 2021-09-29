@@ -105,24 +105,22 @@ class GAE:
 
         #rewards = (rewards - np.mean(rewards)) / (np.std(rewards) + 1e-8)
         #rewards = (rewards) / (np.std(rewards) + 1e-8)
-        rewards = tf.squeeze(rewards).numpy()
+        rewards = tf.cast(tf.squeeze(rewards), dtype=tf.float32)
+        dones = tf.cast(dones, dtype=tf.float32)
         #dones = tf.squeeze(dones).numpy()
-        values = tf.squeeze(values).numpy()
-        next_value = tf.squeeze(next_value).numpy()
+        values = tf.squeeze(values)
+        next_value = tf.squeeze(next_value)
 
         #returns = tf.TensorArray(size=len(rewards), dtype=tf.float32)
         returns = []
         #advantages = tf.TensorArray(size=len(rewards), dtype=tf.float32)
         advantages = []
-
+        all_values = tf.experimental.numpy.append(values, next_value)
         g = 0.0
         for i in reversed(range(len(rewards))):
-            try:
-                delta = rewards[i] + self.gamma * values[i+1] * dones[i] - values[i]
-            except:
-                delta = rewards[i] + self.gamma * next_value * dones[i] - values[i]
+            delta = rewards[i] + self.gamma * all_values[i+1] * dones[i] - all_values[i]
             g = delta + self.gamma * self.lamda * dones[i] * g
-            ret =  g + values[i]
+            ret =  g + all_values[i]
             returns.append(ret)
             #advantages.append(g)
             #returns = returns.write(i,ret)
