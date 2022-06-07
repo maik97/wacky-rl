@@ -4,7 +4,7 @@ Create your own custom reinforcement learning agents (or use the prebuilt agents
 With it's modular approach `wacky-rl` makes the implementation of reinforcement learning easy and flexible - without restricting you!
 
 See the [documentation](https://wacky-rl.rtfd.io) for a detailed explanation on creating your own agents with `wacky-rl`.
-For some examples check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky_rl/agents).
+For some examples check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky/agents/pre_built).
 
 ## Prebuilt Agents
 
