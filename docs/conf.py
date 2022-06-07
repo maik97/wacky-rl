@@ -12,7 +12,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../wacky_rl/'))
+sys.path.insert(0, os.path.abspath('../wacky/'))
 
 
 # -- Project information -----------------------------------------------------
@@ -45,7 +45,7 @@ language = 'python'
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-autodoc_mock_imports = ['tensorflow', 'stable_baselines', 'seaborn', 'keras', 'numpy', 'pandas', 'matplotlib', 'pygame', 'gym']
+autodoc_mock_imports = ['torch', 'numpy', 'pandas', 'matplotlib', 'pygame', 'gym']
 
 autodoc_member_order = 'bysource'
 

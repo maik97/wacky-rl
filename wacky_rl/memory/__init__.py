@@ -1,2 +1,0 @@
-from wacky_rl.memory.memory import BufferMemory
-from wacky_rl.memory.prio_experience_replay import PrioritizedReplayBuffer
