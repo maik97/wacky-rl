@@ -56,7 +56,7 @@ python setup.py install
 If you use `wacky-rl` in your research, you can cite it as follows:
 
 ```bibtex
-@misc{schürmann2021wackyrl,
+@misc{schürmann2022wackyrl,
     author = {Maik Schürmann},
     title = {wacky-rl},
     year = {2022},
