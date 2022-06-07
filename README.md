@@ -12,7 +12,7 @@ For some examples check out the prebuilt [agents](https://github.com/maik97/wack
   [[code]](https://github.com/maik97/wacky-rl/blob/master/wacky/agents/pre_built/deep_q_network.py),
   [[1]](http://arxiv.org/abs/1312.5602),
   [[2]](https://www.nature.com/articles/nature14236),
-  [[3]](http://arxiv.org/abs/1509.06461)
+  [[3]](http://arxiv.org/abs/1509.06461),
   [[4]](https://arxiv.org/abs/1710.02298)
 - [x] REINFORCE 
   [[code]](https://github.com/maik97/wacky-rl/blob/master/wacky/agents/pre_built/reinforce.py),
