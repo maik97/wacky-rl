@@ -57,7 +57,7 @@ If you use `wacky-rl` in your research, you can cite it as follows:
 
 ```bibtex
 @misc{schürmann2022wackyrl,
-    author = {Maik Schürmann},
+    author = {Maik Schürmann, Aaron Haberkern, Boris Pastler},
     title = {wacky-rl},
     year = {2022},
     publisher = {GitHub},
