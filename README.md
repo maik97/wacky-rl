@@ -51,17 +51,3 @@ python setup.py install
 - gym >= 0.17.3
 - numpy
 
-## Citing
-
-If you use `wacky-rl` in your research, you can cite it as follows:
-
-```bibtex
-@misc{schürmann2022wackyrl,
-    author = {Maik Schürmann, Aaron Haberkern, Boris Pastler},
-    title = {wacky-rl},
-    year = {2022},
-    publisher = {GitHub},
-    journal = {GitHub repository},
-    howpublished = {\url{https://github.com/maik97/wacky-rl}},
-}
-```
