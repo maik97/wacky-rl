@@ -2,7 +2,7 @@ from wacky import memory as mem
 from wacky.losses import BaseWackyLoss
 
 class ValueLossWrapper(BaseWackyLoss):
-    def __init__(self, loss_fn, scale_factor=1.0, wacky_reduce='mean', *args, **kwargs):
+    def __init__(self, loss_fn, scale_factor=1.0, wacky_reduce=None, *args, **kwargs):
         super(ValueLossWrapper, self).__init__(scale_factor, wacky_reduce, *args, **kwargs)
         self.loss_fn = loss_fn
 

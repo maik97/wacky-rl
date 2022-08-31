@@ -48,7 +48,6 @@ class MemoryArray:
             new_memory_array.pointer = self.pointer
 
 
-
 class MaxLenMemoryArray(MemoryArray):
 
     def __init__(self, maxlen, key):
@@ -156,7 +155,7 @@ class NumpyMemoryDict(UserDict):
         if not self.is_synchronized:
             raise Exception()
         else:
-            return next(iter(self)).pointer
+            return self[next(iter(self))].pointer
 
     @property
     def is_full(self):
@@ -202,25 +201,40 @@ class NumpyMemoryDict(UserDict):
     ):
 
         max_index = self.max_index if max_index is None else max_index
-        num_batches = max_index // batch_size if num_batches is None else num_batches
 
         if batch_size > max_index:
             print('Warning: Not enough warm up, batch size > memory length')
             return None
 
-        if shuffle_mode is None:
-            indices = np.arange(self.pointer - num_batches * batch_size, self.pointer).reshape(num_batches, batch_size)
-        elif shuffle_mode == 'step':
-            indices = self.random_sample_indices(size=(num_batches, batch_size), max_index=max_index)
-        elif shuffle_mode == 'batch':
-            indices = self.random_sample_indices(size=num_batches, max_index=max_index-batch_size)
-            indices = np.array(
-                [np.arange(ind_start, ind_end) for ind_start, ind_end in zip(indices, indices+batch_size)]
-            )
+        # generate samples:
+        if num_batches is not None:
+            if shuffle_mode is None:
+                indices = np.arange(self.pointer - num_batches * batch_size, self.pointer).reshape(num_batches, batch_size)
+            elif shuffle_mode == 'step':
+                indices = self.random_sample_indices(size=(num_batches, batch_size), max_index=max_index)
+            elif shuffle_mode == 'batch':
+                indices = self.random_sample_indices(size=num_batches, max_index=max_index-batch_size)
+                indices = np.array(
+                    [np.arange(ind_start, ind_end) for ind_start, ind_end in zip(indices, indices+batch_size)]
+                )
+            else:
+                raise KeyError()
+
+        # get the whole dataset:
         else:
-            raise KeyError()
+            indices = np.arange(self.pointer)
+            if shuffle_mode is None:
+                indices = np.array_split(indices, batch_size)
+            elif shuffle_mode == 'step':
+                indices = np.random.shuffle(indices)
+                indices = np.array_split(indices, batch_size)
+            elif shuffle_mode == 'batch':
+                indices = np.array_split(indices, batch_size)
+                batch_indices = np.arange(len(indices))
+                batch_indices = np.random.shuffle(batch_indices)
+                indices = indices[batch_indices]
+            else:
+                raise KeyError()
 
         for batch_indices in indices:
-            #print(batch_indices)
-
             yield self.make_batch_dict(batch_indices, as_tensors=as_tensors)
