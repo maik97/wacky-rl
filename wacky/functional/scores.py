@@ -19,13 +19,14 @@ def monte_carlo_returns(rewards, gamma=0.99, eps=1e-07, standardize=False):
 
 
 def temporal_difference_returns(rewards, dones, next_values, gamma=0.99, eps=1e-07, standardize=False):
-    returns =  rewards + gamma * next_values * (1-int(dones))
-    returns = th.tensor(returns)
+    returns = rewards + gamma * next_values * (1-dones)
+    #returns = th.tensor(returns)
+    # batch['rewards'] + 0.99 * batch['next_values'] * (1 - batch['dones'])
 
     if standardize:
         returns = funky.standardize_tensor(returns, eps)
 
-    return th.unsqueeze(returns, dim=-1)
+    return returns#.reshape(-1, 1)
 
 
 def n_step_returns(rewards, dones, values, next_values, n=16, gamma=0.99, eps=1e-07, standardize=False):
