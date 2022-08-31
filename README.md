@@ -4,6 +4,7 @@ The library is modular and lets you customize everything by subclassing and plug
 Note that there are not many restrictions, and you are free to build agents that might not make sense, hence the name “wacky”.
 
 If you want to quickly create and test your ideas for custom RL agents, this library is the right choice.
+Personally, I use this project for experiments, research and to improve my understanding of RL.
 Check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky/agents/pre_built) to start;
 the [documentation](https://wacky-rl.rtfd.io) will follow soon.
 
