@@ -29,7 +29,7 @@ class TorchOptimizer:
             ordering that is consistent between runs. Examples of objects that don't
             satisfy those properties are sets and iterators over values of dictionaries.
 
-        :param optimizer: (str, torch.optim.Optimizer): Either a the name of an optimizer as str
+        :param optimizer: (str, torch.optim.Optimizer): Either the name of an optimizer as str
             or a subclass of torch.optim.Optimizer
         :param network_parameter: (iterable, nn.Module, wacky.WackNetwork): either is a network
             or iterable of parameters to optimize or dicts defining parameter groups

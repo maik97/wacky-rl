@@ -1,10 +1,12 @@
 # Custom Reinforcement Learning Agents
+With `wacky-rl`, you can create your own custom reinforcement learning agents.
+The library is modular and lets you customize everything by subclassing and plugging in different modules. 
+Note that there are not many restrictions - you are free to incorporate any wacky idea you have, hence the name `wacky-rl`.
 
-Create your own custom reinforcement learning agents (or use the prebuilt agents).
-With it's modular approach `wacky-rl` makes the implementation of reinforcement learning easy and flexible - without restricting you!
-
-See the [documentation](https://wacky-rl.rtfd.io) for a detailed explanation on creating your own agents with `wacky-rl`.
-For some examples check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky/agents/pre_built).
+This library is the right choice if you want to create and test your ideas for custom RL agents quickly.
+Personally, I use this project for experiments, research, and to expand my understanding of RL.
+Check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky/agents/pre_built) to start;
+the [documentation](https://wacky-rl.rtfd.io) will follow soon.
 
 ## Prebuilt Agents
 
@@ -14,6 +16,12 @@ For some examples check out the prebuilt [agents](https://github.com/maik97/wack
   [[2]](https://www.nature.com/articles/nature14236),
   [[3]](http://arxiv.org/abs/1509.06461),
   [[4]](https://arxiv.org/abs/1710.02298)
+  - [x] Double DQN
+  - [x] DuelingNet
+  - [x] PrioritizedExperienceReplay
+  - [x] Categorical DQN
+  - [ ] NoisyNet
+  - [ ] N-step Learning
 - [x] REINFORCE 
   [[code]](https://github.com/maik97/wacky-rl/blob/master/wacky/agents/pre_built/reinforce.py),
   [[5]](https://people.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf)

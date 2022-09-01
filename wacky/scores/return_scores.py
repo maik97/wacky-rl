@@ -86,8 +86,10 @@ class TemporalDifferenceReturns(BaseReturnCalculator):
         self.standardize = standardize
 
     def call(self, memory):
+        #batch['rewards'] + 0.99 * batch['next_values'] * (1 - batch['dones'])
         returns = funky.temporal_difference_returns(
-            rewards=self.rms_normalize_rewards(memory['rewards']),
+            rewards=memory['rewards'],
+            #rewards=self.rms_normalize_rewards(memory['rewards']),
             dones=memory['dones'],
             next_values=memory['next_values'],
             gamma=self.gamma,
