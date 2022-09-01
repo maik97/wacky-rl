@@ -1,10 +1,10 @@
 # Custom Reinforcement Learning Agents
 With `wacky-rl`, you can create your own custom reinforcement learning agents.
-The library is modular and lets you customize everything by subclassing and plugging in different modules.
-Note that there are not many restrictions - you are free incorperate any wacky idea you have, hence the name `wacky-rl`.
+The library is modular and lets you customize everything by subclassing and plugging in different modules. 
+Note that there are not many restrictions - you are free to incorporate any wacky idea you have, hence the name `wacky-rl`.
 
-If you want to quickly create and test your ideas for custom RL agents, this library is the right choice.
-Personally, I use this project for experiments, research and to expand my understanding of RL.
+This library is the right choice if you want to create and test your ideas for custom RL agents quickly.
+Personally, I use this project for experiments, research, and to expand my understanding of RL.
 Check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky/agents/pre_built) to start;
 the [documentation](https://wacky-rl.rtfd.io) will follow soon.
 
