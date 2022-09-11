@@ -6,7 +6,7 @@ Note that there are not many restrictions - you are free to incorporate any wack
 This library is the right choice if you want to create and test your ideas for custom RL agents quickly.
 Personally, I use this project for experiments, research, and to expand my understanding of RL.
 Check out the prebuilt [agents](https://github.com/maik97/wacky-rl/tree/master/wacky/agents/pre_built) to start;
-the [documentation](https://wacky-rl.rtfd.io) will follow soon.
+the [documentation](https://wacky-rl.rtfd.io) will follow soon. Note that the library is based on PyTorch.
 
 ## Prebuilt Agents
 
