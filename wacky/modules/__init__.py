@@ -1,3 +1,4 @@
 from wacky.modules._base_module import *
-from wacky.modules.distribution_networks import *
+from wacky.modules._module_constructor import *
+from wacky.modules.distributions import *
 
