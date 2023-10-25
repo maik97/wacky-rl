@@ -1,4 +1,7 @@
 # Custom Reinforcement Learning Agents
+
+**Note:** Project is currently undergoing a major overhaul.
+
 With `wacky-rl`, you can create your own custom reinforcement learning agents.
 The library is modular and lets you customize everything by subclassing and plugging in different modules. 
 Note that there are not many restrictions - you are free to incorporate any wacky idea you have, hence the name `wacky-rl`.
@@ -10,7 +13,7 @@ the [documentation](https://wacky-rl.rtfd.io) will follow soon.
 
 ## Prebuilt Agents
 
-- [X] DQN to RAINBOW 
+- [X] DQN to RAINBOW (**Note:** Currently broken due to major overhaul.)
   [[code]](https://github.com/maik97/wacky-rl/blob/master/wacky/agents/pre_built/deep_q_network.py),
   [[1]](http://arxiv.org/abs/1312.5602),
   [[2]](https://www.nature.com/articles/nature14236),
@@ -25,7 +28,7 @@ the [documentation](https://wacky-rl.rtfd.io) will follow soon.
 - [x] REINFORCE 
   [[code]](https://github.com/maik97/wacky-rl/blob/master/wacky/agents/pre_built/reinforce.py),
   [[5]](https://people.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf)
-- [x] A2C 
+- [x] A2C (**Note:** Currently broken due to major overhaul.)
   [[code]](https://github.com/maik97/wacky-rl/blob/master/wacky/agents/pre_built/advantage_actor_critic.py),
   [[6]](https://arxiv.org/abs/1602.01783)
 - [ ] SAC
@@ -38,7 +41,7 @@ the [documentation](https://wacky-rl.rtfd.io) will follow soon.
   [[10]](http://proceedings.mlr.press/v37/schulman15.pdf)
 
 ## Installation
-
+<!--
 - Install Wacky-RL with pip:
 
 ```
@@ -46,7 +49,7 @@ pip install wacky-rl
 ```
 
 - Install with git:
-
+-->
 ```
 git clone https://github.com/maik97/wacky-rl.git
 cd wacky-rl
@@ -56,6 +59,6 @@ python setup.py install
 ## Dependencies
 
 - torch
-- gym >= 0.17.3
+- gym
 - numpy
 

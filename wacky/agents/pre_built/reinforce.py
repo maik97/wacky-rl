@@ -1,134 +1,150 @@
-import torch as th
+import torch
+from torch import nn
 import numpy as np
 
-from wacky.agents import ReinforcementLearnerArchitecture
-from wacky.losses import NoBaselineLoss, WithBaselineLoss, BaseWackyLoss
-from wacky.scores import MonteCarloReturns, BaseReturnCalculator
+from wacky.modules import ModuleConstructor
+from wacky.modules.actor_critic import Actor
+from wacky.modules.feature_extraction_constructor import FeatureExtractionConstructor
+from wacky.optimizer._optimizer_constructor import OptimizerConstructor
 from wacky.memory import MemoryDict
 
-from wacky.networks import ActorNetwork, WackyNetwork
-from wacky.optimizer import TorchOptimizer, WackyOptimizer
-
-from wacky.backend import WackyTypeError
+from wacky.returns.episode_returns import EpisodeReturns
+from wacky.losses.policy_gradient_losses import PolicyGradientLoss
 
 
-def make_REINFORCE(
-        env,
-        network=None,
-        optimizer: str = 'Adam',
-        lr: float = 0.001,
-        gamma: float = 0.99,
-        standardize_returns: bool = False,
-        loss_scale_factor: float = 1.0,
-        baseline: str = None,
-        *args, **kwargs
-):
+class REINFORCE:
 
-    if network is not None and not isinstance(network, (list, int)):
-        raise WackyTypeError(network, (list, int), parameter='network', optional=True)
+    @classmethod
+    def from_env(
+            cls,
+            env,
+            feature_extractor='Flatten',
+            policy='SimpleMLP',
+            optimizer='Adam',
+            optimizer_kwargs=None,
+            memory=None,
+            returns_fn=None,
+            loss_fn=None,
+            *args, **kwargs
 
-    network = ActorNetwork(
-        action_space=env.action_space,
-        in_features=env.observation_space,
-        network=[64, 64] if network is None else network,
-    )
+    ):
 
-    print(network)
+        feature_extractor = FeatureExtractionConstructor.from_space(
+            feature_extractor=feature_extractor,
+            space=env.observation_space,
+        )
 
-    optimizer = TorchOptimizer(
-        optimizer=optimizer,
-        network_parameter=network,
-        lr=lr,
-    )
+        policy = ModuleConstructor.construct(policy)
 
-    memory = MemoryDict()
+        actor = Actor(
+            action_space=env.action_space,
+            module=nn.Sequential(feature_extractor, policy)
+        )
 
-    returns_calc = MonteCarloReturns(
-        gamma=gamma,
-        standardize=standardize_returns,
-    )
-
-    if baseline is None:
-        loss_fn = NoBaselineLoss(loss_scale_factor)
-    else:
-        loss_fn = WithBaselineLoss(loss_scale_factor, baseline)
-
-    return REINFORCE(network, optimizer, memory, returns_calc, loss_fn, *args, **kwargs)
-
-
-class REINFORCE(ReinforcementLearnerArchitecture):
+        return cls(
+            actor=actor,
+            optimizer=optimizer,
+            optimizer_kwargs=optimizer_kwargs,
+            memory=memory,
+            returns_fn=returns_fn,
+            loss_fn=loss_fn,
+            *args, ** kwargs
+        )
 
     def __init__(
             self,
-            network: WackyNetwork,
-            optimizer: (TorchOptimizer, WackyOptimizer),
-            memory: MemoryDict = None,
-            returns_calc: BaseReturnCalculator = None,
-            loss_fn: BaseWackyLoss = None,
+            actor,
+            optimizer='Adam',
+            optimizer_kwargs=None,
+            memory=None,
+            returns_fn=None,
+            loss_fn=None,
             *args, **kwargs
     ):
         super(REINFORCE, self).__init__(*args, **kwargs)
 
-        self.network = network
-        self.optimizer = optimizer
-        self.memory = MemoryDict() if memory is None else memory
-        self.returns_calc = MonteCarloReturns() if returns_calc is None else returns_calc
-        self.loss_fn = NoBaselineLoss() if loss_fn is None else loss_fn
+        self.actor = actor
+        self.optimizer = OptimizerConstructor.construct(optimizer, self.actor.parameters(), optimizer_kwargs)
+        self.memory = memory or MemoryDict()
+        self.returns_fn = returns_fn or EpisodeReturns()
+        self.loss_fn = loss_fn or PolicyGradientLoss()
 
-    def reset(self):
-        self.memory.clear()
-
-    def call(self, state, deterministic=False, remember=True):
-        action, log_prob = self.network(state)
-        if remember:
-            self.memory['log_prob'].append(th.squeeze(log_prob))
-        return action
+    def __call__(self, state, deterministic=False):
+        return self.actor(state, deterministic=deterministic)
 
     def learn(self):
-        self.memory.stack()
-        self.memory['returns'] = self.returns_calc(self.memory)
-        loss = self.loss_fn(self.memory)
-
+        returns = self.returns_fn(
+            rewards=self.memory['rewards'],
+            done_flags=self.memory['dones']
+        )
+        loss = self.loss_fn(
+            log_probs=self.memory['log_prob'],
+            policy_gradient_term=returns,
+        )
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-
         return loss.detach()
+
+    def step(self, state, env, remember=True, deterministic=False, render=False):
+        state = torch.FloatTensor(state).unsqueeze(0)
+        action, log_prob = self.actor(state, deterministic=deterministic)
+        state, reward, done, truncated, _ = env.step(action.item())
+        done = done or truncated
+        if remember:
+            self.memory['rewards'].append(reward)
+            self.memory['dones'].append(int(done))
+            self.memory['log_prob'].append(log_prob.squeeze())
+        if render:
+            env.render()
+        return state, done
 
     def train(self, env, num_episodes, render=False):
 
         for e in range(num_episodes):
 
-            self.reset()
+            self.memory.clear()
+            done = False
+            state, _ = env.reset()
+
+            while not done:
+                state, done = self.step(state, env, remember=True, deterministic=False, render=render)
+
+            self.memory.stack()
+            loss = self.learn()
+            print(
+                'episode:', e,
+                'rewards:', self.memory['rewards'].sum().numpy(),
+                'probs:', np.round(torch.exp(self.memory['log_prob'].detach()).mean().numpy(), 4),
+                'loss:', np.round(loss.numpy(), 2),
+            )
+
+    def test(self, env, num_episodes, render=True):
+
+        for e in range(num_episodes):
+
+            self.memory.clear()
             done = False
             state = env.reset()
 
             while not done:
+                state, done = self.step(state, env, remember=True, deterministic=True, render=render)
 
-                state = th.FloatTensor(state).unsqueeze(0)
-                action = self.call(state, deterministic=False).detach()[0]
-                state, reward, done, _ = env.step(action.numpy())
-                self.memory['rewards'].append(reward)
-
-                if render:
-                    env.render()
-
-            self.network.reset()
-
-            loss = self.learn()
-            print('episode:', e,
-                  'rewards:', self.memory['rewards'].sum().numpy(),
-                  'probs:', np.round(th.exp(self.memory['log_prob'].detach()).mean().numpy(),4),
-                  'loss:', np.round(loss.numpy(), 2),
-                  )
+            self.memory.stack()
+            print(
+                'episode:', e,
+                'rewards:', self.memory['rewards'].sum().numpy(),
+                'probs:', np.round(torch.exp(self.memory['log_prob'].detach()).mean().numpy(), 4),
+            )
 
 
 def main():
     import gym
     env = gym.make('CartPole-v0')
-    agent = make_REINFORCE(env, network=[16,16])
-    agent.train(env, 10000)
-    agent.test(env, 100)
+    agent = REINFORCE.from_env(env)
+    agent.train(env, 1_000)
+    agent.test(env, 100, render=False)
+    print(agent.actor)
 
 
 if __name__ == '__main__':

@@ -1,49 +1,43 @@
-from torch import nn
+from abc import ABC
+import torch.nn as nn
 
 
-class WackyModule(nn.Module):
+class WackyModule(nn.Module, ABC):
+    """
+    Base class that is a specialized form of nn.Module for subclasses that may contain
+    specialized modules with methods for experimental learning and resetting.
+    """
 
     def __init__(self):
+        """Initialize the WackyModule instance."""
         super(WackyModule, self).__init__()
 
+    def get_children_with_method(self, method_name: str) -> list:
+        """
+        Return child layers that possess a specific method.
 
-class WackyLayer(WackyModule):
+        Args:
+            method_name (str): The name of the method to look for.
 
-    def __init__(self, in_features, out_features, module=None, activation=None, *args, **kwargs):
-        super(WackyLayer, self).__init__()
+        Returns:
+            list: List of child layers that have the specified method.
+        """
+        return [child for child in self.children() if hasattr(child, method_name)]
 
-        self.in_features = in_features
-        self.out_features = out_features
+    def experimental_learn(self, *args, **kwargs):
+        """
+        Apply experimental learning techniques to applicable child layers.
 
-        if module is None:
-            module = nn.Linear
-        print(in_features)
-        print(out_features)
-        self.module = module(in_features, out_features, *args, **kwargs)
-        self.activation = activation
+        Args and kwargs are passed directly to the 'experimental_learn' method of the child layers.
+        """
+        for child in self.get_children_with_method('experimental_learn'):
+            child.experimental_learn(*args, **kwargs)
 
-    def forward(self, x):
-        x = self.module(x)
-        if self.activation is not None:
-            x = self.activation(x)
-        return x
+    def experimental_reset(self, *args, **kwargs):
+        """
+        Reset the state of applicable child layers in an experimental manner.
 
-
-class AdderLayer(WackyModule):
-
-    def __init__(self, in_features_a, infeatures_b, out_features, module=None, activation=None):
-        super(AdderLayer, self).__init__()
-
-        if module is None:
-            module = nn.Linear
-        self.layer_a = module(in_features_a, out_features)
-        self.layer_b = module(infeatures_b, out_features)
-        self.activation = activation
-
-    def forward(self, a, b=None):
-        if b is None:
-            b = a
-        x = self.layer_a(a) + self.layer_b(b)
-        if self.activation is not None:
-            x = self.activation(x)
-        return x
+        Args and kwargs are passed directly to the 'experimental_reset' method of the child layers.
+        """
+        for child in self.get_children_with_method('experimental_reset'):
+            child.experimental_reset(*args, **kwargs)

@@ -2,9 +2,12 @@ import numpy as np
 import torch as th
 
 from wacky.agents import ReinforcementLearnerArchitecture
+from wacky.losses import ValueLossWrapper
+from wacky.scores import NStepReturns, TemporalDifferenceReturns, GeneralizedReturns
 from wacky.memory import NumpyMemoryDict, PrioritizedExperienceReplay
 from wacky.exploration import DiscountingEpsilonGreedy, InterpolationEpsilonGreedy
 from wacky.networks import OffPolicyNetworkWrapper
+from wacky.optimizer import TorchOptimizer
 
 from wacky import functional as funky
 
